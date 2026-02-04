@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>送信完了｜{{PROJECT}}</title>
+    <link rel="stylesheet" href="./dist/css/main.css" />
+  </head>
+  <body class="t-corporate p-thanks">
+    <header class="site-header">
+      <div class="l-container site-header__inner">
+        <div class="site-header__brand">
+          <p class="site-title">
+            <a href="index.html">{{PROJECT}}</a>
+          </p>
+          <p class="site-tel">電話：<a href="tel:{{TEL}}">{{TEL_DISPLAY}}</a></p>
+        </div>
+
+        <nav class="site-nav" aria-label="グローバルナビ">
+          <ul class="site-nav__list">
+            <li><a href="index.html">トップ</a></li>
+            <li><a href="about.html">会社概要</a></li>
+            <li><a href="service.html">事業内容</a></li>
+            <li><a href="contact.html">お問い合わせ</a></li>
+          </ul>
+        </nav>
+      </div>
+      <hr />
+    </header>
+
+    <main class="main">
+      <!-- Page Hero -->
+      <section class="page-hero">
+        <div class="l-container">
+          <h1>お問い合わせありがとうございます</h1>
+          <p class="page-hero__lead">内容を確認のうえ、担当者よりご連絡いたします。</p>
+        </div>
+      </section>
+
+      <!-- Message -->
+      <section class="section">
+        <div class="l-container">
+          <div class="thanks-message">
+            <p>
+              この度は、{{PROJECT}}へお問い合わせいただき誠にありがとうございます。<br />
+              ご入力いただいた内容は、正常に送信されました。
+            </p>
+
+            <p>
+              通常、<strong>1〜2営業日以内</strong>にご連絡いたします。<br />
+              万が一、数日経っても返信がない場合は、お手数ですがお電話にてご連絡ください。
+            </p>
+
+            <p class="thanks-note">
+              ※ 自動返信メールが届いていない場合、迷惑メールフォルダもご確認ください。
+            </p>
+          </div>
+
+          <div class="thanks-actions">
+            <a href="index.html" class="c-button c-button--secondary"> トップページへ戻る </a>
+            <a href="service.html" class="c-button c-button--primary"> 事業内容を見る </a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <hr />
+      <small>
+        株式会社{{PROJECT}}<br />
+        金属加工（切削・板金・溶接）<br />
+        © {{YEAR}} {{PROJECT}}
+      </small>
+    </footer>
+  </body>
+</html>

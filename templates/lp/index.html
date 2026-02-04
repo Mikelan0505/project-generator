@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{PROJECT}}</title>
+    <link rel="stylesheet" href="./dist/css/main.css" />
+  </head>
+  <body>
+    <!-- Header -->
+    <header class="site-header">
+      <div class="l-container site-header__inner">
+        <p class="brand">{{PROJECT}}</p>
+
+        <nav class="site-nav" aria-label="ページ内ナビ">
+          <a href="#services">サービス</a>
+          <a href="#pricing">料金</a>
+          <a href="#faq">FAQ</a>
+        </nav>
+
+        <a class="c-button c-button--primary" href="#reserve">予約する</a>
+      </div>
+    </header>
+
+    <main class="main">
+      <!-- Hero -->
+      <section class="section hero" id="hero">
+        <div class="l-container hero__inner">
+          <div class="hero__content">
+            <p class="eyebrow">予約型サービス</p>
+            <h1 class="hero__title">{{PROJECT}}</h1>
+            <p class="hero__lead">ここに短い説明（2〜3行）</p>
+
+            <ul class="checklist" aria-label="ベネフィット">
+              <li>ベネフィット 01</li>
+              <li>ベネフィット 02</li>
+              <li>ベネフィット 03</li>
+            </ul>
+
+            <div class="hero__cta">
+              <a class="c-button c-button--primary c-button--lg" href="#reserve">予約する</a>
+              <a class="c-button c-button--secondary c-button--lg" href="#pricing">料金を見る</a>
+            </div>
+
+            <p class="note">※注意書き・補足など</p>
+          </div>
+
+          <div class="hero__visual" aria-hidden="true">
+            <div class="placeholder">IMAGE</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Problems -->
+      <section class="section" id="problems">
+        <div class="l-container">
+          <h2 class="section__title">こんなお悩みありませんか？</h2>
+          <p class="section__lead">共感パート（短文）</p>
+
+          <ul class="checklist checklist--grid" aria-label="お悩みリスト">
+            <li>悩み 01</li>
+            <li>悩み 02</li>
+            <li>悩み 03</li>
+            <li>悩み 04</li>
+            <li>悩み 05</li>
+            <li>悩み 06</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Solution -->
+      <section class="section section--alt" id="solution">
+        <div class="l-container">
+          <h2 class="section__title">このサービスでこう変わります</h2>
+          <p class="section__lead">Before / After の説明</p>
+
+          <div class="grid grid--2">
+            <div class="card">
+              <h3 class="card__title">Before</h3>
+              <p class="card__text">課題の状態（文章）</p>
+            </div>
+            <div class="card">
+              <h3 class="card__title">After</h3>
+              <p class="card__text">理想の状態（文章）</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Services -->
+      <section class="section" id="services">
+        <div class="l-container">
+          <h2 class="section__title">サービス内容</h2>
+          <p class="section__lead">何が受けられるのか</p>
+
+          <div class="grid grid--3">
+            <article class="card">
+              <h3 class="card__title">メニュー 01</h3>
+              <p class="card__text">説明テキスト</p>
+            </article>
+            <article class="card">
+              <h3 class="card__title">メニュー 02</h3>
+              <p class="card__text">説明テキスト</p>
+            </article>
+            <article class="card">
+              <h3 class="card__title">メニュー 03</h3>
+              <p class="card__text">説明テキスト</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Pricing -->
+      <section class="section section--alt" id="pricing">
+        <div class="l-container">
+          <h2 class="section__title">料金</h2>
+          <p class="section__lead">プラン比較（1〜3）</p>
+
+          <div class="grid grid--3">
+            <article class="card price">
+              <h3 class="card__title">プランA</h3>
+              <p class="price__amount">¥00,000</p>
+              <ul class="bullets" aria-label="含まれる内容">
+                <li>内容 01</li>
+                <li>内容 02</li>
+                <li>内容 03</li>
+              </ul>
+              <a class="c-button c-button--primary c-button--block" href="#reserve"
+                >このプランで予約</a
+              >
+            </article>
+
+            <article class="card price price--featured" aria-label="おすすめプラン">
+              <p class="badge">おすすめ</p>
+              <h3 class="card__title">プランB</h3>
+              <p class="price__amount">¥00,000</p>
+              <ul class="bullets" aria-label="含まれる内容">
+                <li>内容 01</li>
+                <li>内容 02</li>
+                <li>内容 03</li>
+              </ul>
+              <a class="c-button c-button--primary c-button--block" href="#reserve"
+                >このプランで予約</a
+              >
+            </article>
+
+            <article class="card price">
+              <h3 class="card__title">プランC</h3>
+              <p class="price__amount">¥00,000</p>
+              <ul class="bullets" aria-label="含まれる内容">
+                <li>内容 01</li>
+                <li>内容 02</li>
+                <li>内容 03</li>
+              </ul>
+              <a class="c-button c-button--primary c-button--block" href="#reserve"
+                >このプランで予約</a
+              >
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Flow -->
+      <section class="section" id="flow">
+        <div class="l-container">
+          <h2 class="section__title">予約の流れ</h2>
+
+          <ol class="steps" aria-label="予約ステップ">
+            <li class="step">
+              <p class="step__num">Step 1</p>
+              <h3 class="step__title">メニューを選ぶ</h3>
+              <p class="step__text">説明テキスト</p>
+            </li>
+            <li class="step">
+              <p class="step__num">Step 2</p>
+              <h3 class="step__title">日時を選ぶ</h3>
+              <p class="step__text">説明テキスト</p>
+            </li>
+            <li class="step">
+              <p class="step__num">Step 3</p>
+              <h3 class="step__title">確定して完了</h3>
+              <p class="step__text">説明テキスト</p>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- Reviews -->
+      <section class="section section--alt" id="reviews">
+        <div class="l-container">
+          <h2 class="section__title">お客様の声</h2>
+
+          <div class="grid grid--3">
+            <article class="card">
+              <p class="stars" aria-label="評価">★★★★★</p>
+              <p class="card__text">レビュー本文（短文）</p>
+              <p class="meta">30代 / 女性</p>
+            </article>
+            <article class="card">
+              <p class="stars" aria-label="評価">★★★★★</p>
+              <p class="card__text">レビュー本文（短文）</p>
+              <p class="meta">40代 / 男性</p>
+            </article>
+            <article class="card">
+              <p class="stars" aria-label="評価">★★★★★</p>
+              <p class="card__text">レビュー本文（短文）</p>
+              <p class="meta">50代 / 女性</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section class="section" id="faq">
+        <div class="l-container">
+          <h2 class="section__title">よくある質問</h2>
+
+          <div class="faq" role="list">
+            <details class="faq__item" role="listitem">
+              <summary class="faq__q">キャンセルはできますか？</summary>
+              <div class="faq__a">回答テキスト</div>
+            </details>
+            <details class="faq__item" role="listitem">
+              <summary class="faq__q">所要時間はどれくらい？</summary>
+              <div class="faq__a">回答テキスト</div>
+            </details>
+            <details class="faq__item" role="listitem">
+              <summary class="faq__q">支払い方法は？</summary>
+              <div class="faq__a">回答テキスト</div>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <!-- Reserve (CTA) -->
+      <section class="section reserve" id="reserve">
+        <div class="l-container reserve__inner">
+          <h2 class="section__title">今すぐ予約しませんか？</h2>
+          <p class="section__lead">最後のひと押し（安心材料）</p>
+
+          <div class="reserve__cta">
+            <a class="c-button c-button--primary c-button--xl" href="#reserve">予約フォームへ</a>
+            <a class="c-button c-button--secondary c-button--xl" href="tel:{{TEL}}">電話で相談</a>
+          </div>
+
+          <ul class="bullets bullets--inline" aria-label="安心材料">
+            <li>当日OK</li>
+            <li>キャンセル可</li>
+            <li>所要時間〇分</li>
+          </ul>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer" id="footer">
+      <div class="l-container footer__inner">
+        <div class="footer__cols">
+          <div>
+            <p class="brand">{{PROJECT}}</p>
+            <p class="meta">営業時間：00:00〜00:00</p>
+            <p class="meta">住所：〇〇〇〇</p>
+          </div>
+          <div>
+            <p class="footer__title">リンク</p>
+            <ul class="footer__links">
+              <li><a href="#services">サービス</a></li>
+              <li><a href="#pricing">料金</a></li>
+              <li><a href="#faq">FAQ</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <small class="copyright">© {{PROJECT}}</small>
+      </div>
+    </footer>
+
+    <!-- SP fixed CTA -->
+    <div class="fixed-cta" role="region" aria-label="固定CTA">
+      <a class="c-button c-button--secondary c-button--block" href="tel:{{TEL}}">{{TEL_DISPLAY}}</a>
+      <a class="c-button c-button--primary c-button--block" href="#reserve">予約</a>
+    </div>
+  </body>
+</html>

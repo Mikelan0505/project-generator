@@ -1,0 +1,19 @@
+# ------------------
+# generated projects
+# ------------------
+*_corporate_*
+*_event_*
+*_service-lp_*
+*_lp_*
+
+# ------------------
+# cache / misc
+# ------------------
+__pycache__/
+*.pyc
+
+# ------------------
+# OS
+# ------------------
+.DS_Store
+Thumbs.db
