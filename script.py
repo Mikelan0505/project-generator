@@ -65,16 +65,19 @@ def normalize_css_link(html_path: Path) -> None:
 
     def repl(m: re.Match) -> str:
         tag = m.group(0)
-        if re.search(r'href\s*=\s*"', tag, flags=re.I):
-            tag = re.sub(
-                r'href\s*=\s*"[^"]*"',
-                f'href="{CSS_HREF}"',
-                tag,
-                flags=re.I,
-            )
-        else:
-            tag = tag[:-1] + f' href="{CSS_HREF}">'
-        return tag
+        hm = re.search(r'href\s*=\s*"([^"]*)"', tag, flags=re.I)
+        if not hm:
+            return tag
+        href = hm.group(1)
+        # main.css だけ正規化（theme 等は触らない）
+        if "main.css" not in href.lower():
+            return tag
+        return re.sub(
+            r'href\s*=\s*"[^"]*"',
+            f'href="{CSS_HREF}"',
+            tag,
+            flags=re.I,
+        )
 
     text2 = re.sub(
         r"<link\b[^>]*rel\s*=\s*['\"]stylesheet['\"][^>]*>",
@@ -126,16 +129,22 @@ def normalize_html(html_path: Path) -> None:
 # -----------------------------
 def copy_exiga_dist_to_output(output_dir: Path) -> None:
     base_dir = Path(__file__).parent
-    exiga_css_dir = base_dir.parent / "sass-starter-exiga" / "dist" / "css"
+    exiga_dist_dir = base_dir.parent / "sass-starter-exiga" / "dist"
 
-    if not exiga_css_dir.exists():
-        print("exiga の CSS dir が見つかりません:", exiga_css_dir)
+    if not exiga_dist_dir.exists():
+        print("exiga の dist dir が見つかりません:", exiga_dist_dir)
         return
 
-    dst = output_dir / "dist" / "css"
-    dst.mkdir(parents=True, exist_ok=True)
+    # css / js を同期
+    for sub in ("css", "js"):
+        src = exiga_dist_dir / sub
+        if not src.exists():
+            print(f"exiga の dist/{sub} が見つかりません:", src)
+            continue
 
-    shutil.copytree(exiga_css_dir, dst, dirs_exist_ok=True)
+        dst = output_dir / "dist" / sub
+        dst.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src, dst, dirs_exist_ok=True)
 
 
 # -----------------------------
