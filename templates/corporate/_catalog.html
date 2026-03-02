@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Corporate Catalog (sections)</title>
+
+    <!--
+      NOTE:
+      - このファイルは「保管庫」。生成(new)や同期(sync)の対象にしない前提。
+      - 目的: corporate で想定できるセクションを1枚に集約し、実案件では必要分だけコピペして使う。
+      - 昇格基準: (1) 実案件で2回以上使用 (2) 生存率が高い (3) class名がブレない -> index.htmlへ昇格
+    -->
+
+    <!-- 案件側では outputs/<project>/assets/css/style.css が同期される想定 -->
+    <link rel="stylesheet" href="assets/css/style.css" />
+  </head>
+
+  <body class="tpl-corporate page-catalog">
+    <header>
+      <div class="container">
+        <h1 class="site-title"><a href="index.html">{{PROJECT}}</a></h1>
+        <p class="site-tel">電話：<a href="tel:{{TEL}}">{{TEL_DISPLAY}}</a></p>
+
+        <nav aria-label="グローバルナビ">
+          <ul class="g-nav">
+            <li><a href="index.html">トップ</a></li>
+            <li><a href="about.html">会社概要</a></li>
+            <li><a href="service.html">事業内容</a></li>
+            <li><a href="contact.html">お問い合わせ</a></li>
+          </ul>
+        </nav>
+      </div>
+      <hr />
+    </header>
+
+    <main>
+      <div class="container">
+        <p class="note">
+          このページは corporate 用の「セクション保管庫」です。実案件では必要な section
+          をコピペして使い、不要な section は削除/コメントアウトします。
+        </p>
+      </div>
+
+      <!-- 01: HERO (必須/昇格候補) -->
+      <section class="section section--hero">
+        <div class="container">
+          <h2 class="section__title">Hero</h2>
+          <p class="lead">キャッチコピー / サブコピー / CTA</p>
+
+          <div class="hero__content">
+            <h3 class="hero__catch">安心感のあるキャッチコピー</h3>
+            <p class="hero__sub">ここにサブコピー（誰に何をどう提供するか）を短く書く。</p>
+
+            <div class="hero__actions">
+              <a class="c-button c-button--primary" href="contact.html">お問い合わせ</a>
+              <a class="c-button c-button--secondary" href="service.html">事業内容を見る</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 02: SERVICE (必須/昇格候補) -->
+      <section class="section section--service">
+        <div class="container">
+          <h2 class="section__title">事業内容</h2>
+          <p class="section__desc">corporate の核。まずは「一覧」を置いておく。</p>
+
+          <div class="service-list">
+            <article class="service-item">
+              <h3 class="service-item__title">サービスA</h3>
+              <p class="service-item__text">サービス概要。2〜3行で要点のみ。</p>
+              <a class="service-item__link" href="service.html">詳しく見る</a>
+            </article>
+
+            <article class="service-item">
+              <h3 class="service-item__title">サービスB</h3>
+              <p class="service-item__text">サービス概要。2〜3行で要点のみ。</p>
+              <a class="service-item__link" href="service.html">詳しく見る</a>
+            </article>
+
+            <article class="service-item">
+              <h3 class="service-item__title">サービスC</h3>
+              <p class="service-item__text">サービス概要。2〜3行で要点のみ。</p>
+              <a class="service-item__link" href="service.html">詳しく見る</a>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- 03: STRENGTH (差別化/昇格候補) -->
+      <section class="section section--strength">
+        <div class="container">
+          <h2 class="section__title">選ばれる理由</h2>
+          <p class="section__desc">箇条書き or 数字で差別化。生存率が高い。</p>
+
+          <ul class="strength-list">
+            <li class="strength-item">
+              <h3 class="strength-item__title">強み1</h3>
+              <p class="strength-item__text">説明文。具体性のある言い方にする。</p>
+            </li>
+            <li class="strength-item">
+              <h3 class="strength-item__title">強み2</h3>
+              <p class="strength-item__text">説明文。成果・実績・体制など。</p>
+            </li>
+            <li class="strength-item">
+              <h3 class="strength-item__title">強み3</h3>
+              <p class="strength-item__text">説明文。対応範囲や速度など。</p>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 04: WORKS/RESULTS (信頼/昇格候補) -->
+      <section class="section section--works">
+        <div class="container">
+          <h2 class="section__title">実績</h2>
+          <p class="section__desc">事例カード or ロゴ/数字でもOK。</p>
+
+          <div class="works-list">
+            <article class="works-item">
+              <h3 class="works-item__title">事例A</h3>
+              <p class="works-item__text">成果や対応範囲を短く。</p>
+              <a class="works-item__link" href="#">事例を見る</a>
+            </article>
+
+            <article class="works-item">
+              <h3 class="works-item__title">事例B</h3>
+              <p class="works-item__text">成果や対応範囲を短く。</p>
+              <a class="works-item__link" href="#">事例を見る</a>
+            </article>
+
+            <article class="works-item">
+              <h3 class="works-item__title">事例C</h3>
+              <p class="works-item__text">成果や対応範囲を短く。</p>
+              <a class="works-item__link" href="#">事例を見る</a>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- 05: FLOW (サービス寄り/昇格は条件付き) -->
+      <section class="section section--flow">
+        <div class="container">
+          <h2 class="section__title">ご利用の流れ</h2>
+          <p class="section__desc">service-led 案件で使いがち。</p>
+
+          <ol class="flow-list">
+            <li class="flow-item">
+              <h3 class="flow-item__title">Step 1</h3>
+              <p class="flow-item__text">お問い合わせ・ヒアリング</p>
+            </li>
+            <li class="flow-item">
+              <h3 class="flow-item__title">Step 2</h3>
+              <p class="flow-item__text">提案・お見積り</p>
+            </li>
+            <li class="flow-item">
+              <h3 class="flow-item__title">Step 3</h3>
+              <p class="flow-item__text">制作・納品</p>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- 06: MESSAGE (採用/信頼寄り) -->
+      <section class="section section--message">
+        <div class="container">
+          <h2 class="section__title">代表メッセージ</h2>
+          <p class="section__desc">人・想い・理念を見せたいとき。</p>
+
+          <div class="message">
+            <p class="message__text">代表メッセージ本文。理念や顧客への約束など。</p>
+            <p class="message__sign">代表取締役　山田 太郎</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 07: STAFF/TEAM (採用/信頼寄り) -->
+      <section class="section section--staff">
+        <div class="container">
+          <h2 class="section__title">スタッフ紹介</h2>
+          <p class="section__desc">チームを見せたいとき。</p>
+
+          <div class="staff-list">
+            <article class="staff-item">
+              <h3 class="staff-item__name">スタッフA</h3>
+              <p class="staff-item__role">役割</p>
+              <p class="staff-item__text">紹介文。専門や得意分野。</p>
+            </article>
+
+            <article class="staff-item">
+              <h3 class="staff-item__name">スタッフB</h3>
+              <p class="staff-item__role">役割</p>
+              <p class="staff-item__text">紹介文。専門や得意分野。</p>
+            </article>
+
+            <article class="staff-item">
+              <h3 class="staff-item__name">スタッフC</h3>
+              <p class="staff-item__role">役割</p>
+              <p class="staff-item__text">紹介文。専門や得意分野。</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- 08: COMPANY (必須/昇格候補) -->
+      <section class="section section--company">
+        <div class="container">
+          <h2 class="section__title">会社概要</h2>
+          <p class="section__desc">table を基準に作ると使い回せる。</p>
+
+          <table class="company-table">
+            <tbody>
+              <tr>
+                <th>会社名</th>
+                <td>{{PROJECT}}</td>
+              </tr>
+              <tr>
+                <th>所在地</th>
+                <td>〒000-0000 都道府県 市区町村 〇〇</td>
+              </tr>
+              <tr>
+                <th>電話番号</th>
+                <td>{{TEL_DISPLAY}}</td>
+              </tr>
+              <tr>
+                <th>事業内容</th>
+                <td>〇〇、〇〇、〇〇</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 09: NEWS (任意) -->
+      <section class="section section--news">
+        <div class="container">
+          <h2 class="section__title">お知らせ</h2>
+          <p class="section__desc">更新運用がある場合に採用。</p>
+
+          <ul class="news-list">
+            <li class="news-item">
+              <time datetime="2026-01-01">2026-01-01</time>
+              <a href="#">お知らせタイトル</a>
+            </li>
+            <li class="news-item">
+              <time datetime="2026-01-01">2026-01-01</time>
+              <a href="#">お知らせタイトル</a>
+            </li>
+            <li class="news-item">
+              <time datetime="2026-01-01">2026-01-01</time>
+              <a href="#">お知らせタイトル</a>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 10: FAQ (サービス寄り) -->
+      <section class="section section--faq">
+        <div class="container">
+          <h2 class="section__title">よくある質問</h2>
+          <p class="section__desc">service-led 案件で強い。</p>
+
+          <dl class="faq-list">
+            <dt class="faq-q">Q. 質問が入ります</dt>
+            <dd class="faq-a">A. 回答が入ります</dd>
+
+            <dt class="faq-q">Q. 質問が入ります</dt>
+            <dd class="faq-a">A. 回答が入ります</dd>
+
+            <dt class="faq-q">Q. 質問が入ります</dt>
+            <dd class="faq-a">A. 回答が入ります</dd>
+          </dl>
+        </div>
+      </section>
+
+      <!-- 11: CTA (必須/昇格候補) -->
+      <section class="section section--cta">
+        <div class="container">
+          <h2 class="section__title">お問い合わせ</h2>
+          <p class="section__desc">最後の導線。フォーム or 電話へ誘導。</p>
+
+          <div class="cta-actions">
+            <a class="c-button c-button--primary" href="contact.html">フォームで問い合わせ</a>
+            <a class="c-button c-button--secondary" href="tel:{{TEL}}">電話する</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <hr />
+      <div class="container">
+        <p class="footer__copy">
+          <small>&copy; {{PROJECT}}</small>
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

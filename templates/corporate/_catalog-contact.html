@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Corporate Catalog - contact</title>
+    <link rel="stylesheet" href="assets/css/style.css" />
+  </head>
+
+  <body class="tpl-corporate page-catalog-contact">
+    <header>
+      <div class="container">
+        <h1 class="site-title"><a href="index.html">{{PROJECT}}</a></h1>
+        <p class="site-tel">電話：<a href="tel:{{TEL}}">{{TEL_DISPLAY}}</a></p>
+
+        <nav aria-label="グローバルナビ">
+          <ul class="g-nav">
+            <li><a href="index.html">トップ</a></li>
+            <li><a href="about.html">会社概要</a></li>
+            <li><a href="service.html">事業内容</a></li>
+            <li><a href="contact.html">お問い合わせ</a></li>
+          </ul>
+        </nav>
+      </div>
+      <hr />
+    </header>
+
+    <main>
+      <div class="container">
+        <h2 class="page-title">contact catalog</h2>
+        <p class="note">contact.html 用の保管庫。</p>
+      </div>
+
+      <!-- C01: ページ説明（必須） -->
+      <section class="section section--pagehead">
+        <div class="container">
+          <h2 class="section__title">お問い合わせ</h2>
+          <p class="section__desc">内容を確認のうえ、担当よりご連絡します。</p>
+        </div>
+      </section>
+
+      <!-- C02: 連絡手段（任意：電話優先案件） -->
+      <section class="section section--contact-methods">
+        <div class="container">
+          <h2 class="section__title">お電話でのお問い合わせ</h2>
+          <p>
+            <a class="c-button c-button--secondary" href="tel:{{TEL}}"
+              >{{TEL_DISPLAY}} に電話する</a
+            >
+          </p>
+        </div>
+      </section>
+
+      <!-- C03: フォーム（必須） -->
+      <section class="section section--form">
+        <div class="container">
+          <h2 class="section__title">フォーム</h2>
+
+          <form action="thanks.html" method="get">
+            <div class="form-field">
+              <label for="name">お名前</label>
+              <input id="name" name="name" type="text" required />
+            </div>
+
+            <div class="form-field">
+              <label for="email">メールアドレス</label>
+              <input id="email" name="email" type="email" required />
+            </div>
+
+            <div class="form-field">
+              <label for="message">お問い合わせ内容</label>
+              <textarea id="message" name="message" rows="6"></textarea>
+            </div>
+
+            <div class="form-actions">
+              <button class="c-button c-button--primary" type="submit">送信する</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- C04: 注意書き（任意） -->
+      <section class="section section--notes">
+        <div class="container">
+          <h2 class="section__title">注意事項</h2>
+          <ul>
+            <li>返信までにお時間をいただく場合があります。</li>
+            <li>営業目的のお問い合わせはご遠慮ください。</li>
+          </ul>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <hr />
+      <div class="container">
+        <p class="footer__copy"><small>&copy; {{PROJECT}}</small></p>
+      </div>
+    </footer>
+  </body>
+</html>

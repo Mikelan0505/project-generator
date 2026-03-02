@@ -1,0 +1,200 @@
+﻿<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>UI Kit | Corporate Modern</title>
+
+    <!-- base framework -->
+    <link rel="stylesheet" href="./dist/css/main.css" />
+
+    <!-- theme -->
+    <link rel="stylesheet" href="./theme-corporate-modern.css" />
+  </head>
+
+  <body>
+    <!-- ==================================================
+    Hero
+    ================================================== -->
+    <section class="l-section is-bg">
+      <div class="l-container">
+        <div class="c-heading">
+          <p class="c-heading__eyebrow">UI KIT</p>
+          <h1 class="c-heading__title">Corporate Modern</h1>
+          <p class="c-heading__lead">整った情報感 × 写真主役。SP〜Ultra Wideまでヌルっと可変。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================================================
+    Works（見せ場：container-wide / 3列固定 / uniform）
+    ================================================== -->
+    <section class="l-section section--container-wide works">
+      <div class="l-container">
+        <div class="c-heading">
+          <p class="c-heading__eyebrow">WORKS</p>
+          <h2 class="c-heading__title">制作実績</h2>
+          <p class="c-heading__lead">カード高さを揃え、一覧の情報密度と読みやすさを固定。</p>
+        </div>
+
+        <div class="l-grid is-cards-3 is-cards-uniform">
+          <!-- card -->
+          <article class="c-card">
+            <a class="c-card__link" href="#">
+              <div class="c-card__media">
+                <img class="c-card__img" src="./assets/img/sample.jpg" alt="" />
+              </div>
+
+              <div class="c-card__body">
+                <h3 class="c-card__title">コーポレートサイト制作</h3>
+                <p class="c-card__text">
+                  情報設計と余白設計を整理し、SP〜Ultra Wideまで破綻しない構成へ。
+                </p>
+                <p class="c-card__meta">2026 / WordPress</p>
+              </div>
+            </a>
+          </article>
+
+          <!-- card -->
+          <article class="c-card">
+            <a class="c-card__link" href="#">
+              <div class="c-card__media">
+                <img class="c-card__img" src="./assets/img/sample.jpg" alt="" />
+              </div>
+
+              <div class="c-card__body">
+                <h3 class="c-card__title">採用サイトリニューアル</h3>
+                <p class="c-card__text">
+                  写真点数が多い構成でも視線誘導が崩れないよう、階層と間隔を再設計。
+                </p>
+                <p class="c-card__meta">2025 / Static</p>
+              </div>
+            </a>
+          </article>
+
+          <!-- card -->
+          <article class="c-card">
+            <a class="c-card__link" href="#">
+              <div class="c-card__media">
+                <img class="c-card__img" src="./assets/img/sample.jpg" alt="" />
+              </div>
+
+              <div class="c-card__body">
+                <h3 class="c-card__title">サービスLP構築</h3>
+                <p class="c-card__text">
+                  文章量が増えても読みやすさを保つため、行間・行数・余白を統一。
+                </p>
+                <p class="c-card__meta">2024 / LP</p>
+              </div>
+            </a>
+          </article>
+
+          <!-- card -->
+          <article class="c-card">
+            <a class="c-card__link" href="#">
+              <div class="c-card__media">
+                <img class="c-card__img" src="./assets/img/sample.jpg" alt="" />
+              </div>
+
+              <div class="c-card__body">
+                <h3 class="c-card__title">クリニックサイト制作</h3>
+                <p class="c-card__text">
+                  予約導線とCTA配置を最適化。スマホでの操作性を重視して設計。
+                </p>
+                <p class="c-card__meta">2024 / WordPress</p>
+              </div>
+            </a>
+          </article>
+
+          <!-- card -->
+          <article class="c-card">
+            <a class="c-card__link" href="#">
+              <div class="c-card__media">
+                <img class="c-card__img" src="./assets/img/sample.jpg" alt="" />
+              </div>
+
+              <div class="c-card__body">
+                <h3 class="c-card__title">カフェサイト（ブランドトーン設計）</h3>
+                <p class="c-card__text">
+                  写真の温度感に合わせて配色とタイポを整理。余白スケールを統一。
+                </p>
+                <p class="c-card__meta">2023 / Static</p>
+              </div>
+            </a>
+          </article>
+
+          <!-- card -->
+          <article class="c-card">
+            <a class="c-card__link" href="#">
+              <div class="c-card__media">
+                <img class="c-card__img" src="./assets/img/sample.jpg" alt="" />
+              </div>
+
+              <div class="c-card__body">
+                <h3 class="c-card__title">行政書士LP（導線設計）</h3>
+                <p class="c-card__text">
+                  “迷わない”導線を優先し、見出し階層とセクションの役割を明確化。
+                </p>
+                <p class="c-card__meta">2026 / LP</p>
+              </div>
+            </a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================================================
+Featured（横カード：説明用）
+================================================== -->
+    <section class="l-section section--container-wide is-bg">
+      <div class="l-container">
+        <div class="c-heading">
+          <p class="c-heading__eyebrow">FEATURED</p>
+          <h2 class="c-heading__title">注目案件</h2>
+          <p class="c-heading__lead">文章で説明が必要なものは横カードで整理。</p>
+        </div>
+
+        <!-- “grid” ではなく “縦スタック” -->
+        <div class="c-stack" style="--stack-gap: var(--grid-gap, 24px)">
+          <article class="c-card c-card--horizontal is-media-large">
+            <a class="c-card__link" href="#">
+              <div class="c-card__media">
+                <img class="c-card__img" src="./assets/img/sample.jpg" alt="" />
+              </div>
+
+              <div class="c-card__body">
+                <h3 class="c-card__title">
+                  大規模コーポレートサイト再設計（情報構造＋デザインシステム）
+                </h3>
+                <p class="c-card__text">
+                  コンポーネントの責務を分離し、theme変数で密度を制御できる設計へ。
+                  Works一覧はuniformで“整った情報感”を固定。
+                </p>
+                <p class="c-card__meta">2026 / WordPress</p>
+              </div>
+            </a>
+          </article>
+
+          <article class="c-card c-card--horizontal">
+            <a class="c-card__link" href="#">
+              <div class="c-card__media">
+                <img class="c-card__img" src="./assets/img/sample.jpg" alt="" />
+              </div>
+
+              <div class="c-card__body">
+                <h3 class="c-card__title">保守運用を前提にした改修パッケージ</h3>
+                <p class="c-card__text">
+                  既存サイトの改善ポイントを整理し、CTA／導線／文章の調整を短時間で実施。
+                </p>
+                <p class="c-card__meta">2025 / Maintenance</p>
+              </div>
+            </a>
+          </article>
+        </div>
+      </div>
+    </section>
+    <script type="module" src="./dist/js/core/app.js"></script>
+</body>
+</html>
+
+
