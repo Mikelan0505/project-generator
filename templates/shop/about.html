@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{PAGE_TITLE}} | {{PROJECT}}</title>
+    <meta
+      name="description"
+      content="{{PROJECT}} の店舗紹介スターターです。店の背景、こだわり、営業時間、アクセスを整理しやすい最小構成です。"
+    />
+    <meta name="build-date" content="{{DATE}}" />
+    <link rel="stylesheet" href="./dist/css/main.css" />
+  </head>
+  <body>
+    <a href="#main" class="skip-link">本文へスキップ</a>
+
+    <header
+      class="site-header site-header--solid is-sticky site-header--drawer site-header--scroll-light"
+      id="top"
+    >
+      <div class="site-header__inner l-container">
+        <p class="site-title">
+          <a href="./index.html" class="site-title__link">{{PROJECT}}</a>
+        </p>
+
+        <nav class="site-nav js-site-nav" id="site-nav" aria-label="グローバルナビ" hidden>
+          <ul>
+            <li><a href="./index.html">トップ</a></li>
+            <li><a href="./products.html">商品一覧</a></li>
+            <li><a href="./about.html" class="is-current" aria-current="page">店舗案内</a></li>
+            <li><a href="./contact.html" class="site-nav__cta">お問い合わせ</a></li>
+          </ul>
+        </nav>
+
+        <button
+          class="site-nav-toggle js-nav-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="site-nav"
+          aria-label="メニューを開く"
+        >
+          <span class="site-nav-toggle__icon" aria-hidden="true"></span>
+        </button>
+      </div>
+
+      <div class="site-nav-overlay js-nav-overlay" hidden></div>
+    </header>
+
+    <main class="main" id="main">
+      <section class="page-hero-section l-section" aria-labelledby="page-hero-title">
+        <div class="l-container c-stack">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">ABOUT</p>
+            <h1 id="page-hero-title" class="c-heading__title">店舗紹介ページの土台</h1>
+            <p class="c-heading__lead">
+              店の背景、商品選びの基準、営業時間やアクセスまで、来店判断に必要な情報を整理するページです。
+            </p>
+          </header>
+        </div>
+      </section>
+
+      <section
+        class="store-concept-section l-section l-section--bg-soft"
+        aria-labelledby="store-concept-title"
+      >
+        <div class="l-container c-stack">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">STORE CONCEPT</p>
+            <h2 id="store-concept-title" class="c-heading__title">店の考え方と背景</h2>
+            <p class="c-heading__lead">
+              どんなお客様に向けた店なのか、どういう基準で商品を揃えているのかを整理する導入ブロックです。
+            </p>
+          </header>
+
+          <div class="c-notice c-notice--soft u-measure-980">
+            <p class="c-notice__label">差し替えメモ</p>
+            <div class="c-notice__body">
+              <p>創業背景、店主の想い、産地や作り手への考え方などに差し替えて利用できます。</p>
+              <p>
+                ブランドのトーンに応じて、やさしい語り口にも、専門性を感じる文面にも調整しやすい量にしています。
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="commitment-section l-section" aria-labelledby="commitment-title">
+        <div class="l-container c-stack">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">COMMITMENT</p>
+            <h2 id="commitment-title" class="c-heading__title">こだわり</h2>
+            <p class="c-heading__lead">
+              商品選定、素材、包装、接客、店づくりなど、店舗の魅力につながる軸を整理して見せるセクションです。
+            </p>
+          </header>
+
+          <div class="l-grid l-grid--cards-3 l-grid--cards-uniform">
+            <article class="c-card c-card--lg c-card--fill">
+              <div class="c-card__body">
+                <p class="text-sub">POINT 01</p>
+                <h3 class="c-card__title">商品選び</h3>
+                <p class="c-card__text">
+                  素材や作り手、使い心地など、店の基準に合わせて差し替えやすい説明枠です。
+                </p>
+              </div>
+            </article>
+
+            <article class="c-card c-card--lg c-card--fill">
+              <div class="c-card__body">
+                <p class="text-sub">POINT 02</p>
+                <h3 class="c-card__title">贈り物対応</h3>
+                <p class="c-card__text">
+                  ラッピング、用途提案、季節提案など、物販店らしい接客軸を見せる用途に向きます。
+                </p>
+              </div>
+            </article>
+
+            <article class="c-card c-card--lg c-card--fill">
+              <div class="c-card__body">
+                <p class="text-sub">POINT 03</p>
+                <h3 class="c-card__title">店内体験</h3>
+                <p class="c-card__text">
+                  香り、手に取る楽しさ、選ぶ時間など、来店価値を伝えるための枠です。
+                </p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="access-section l-section l-section--bg-soft" aria-labelledby="access-title">
+        <div class="l-container c-stack">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">ACCESS</p>
+            <h2 id="access-title" class="c-heading__title">営業時間とアクセス</h2>
+            <p class="c-heading__lead">
+              来店前に必要な情報を表で見やすく整理できるよう、営業時間とアクセス情報の枠を用意しています。
+            </p>
+          </header>
+
+          <div class="c-table--wrapper c-table--wrapper--narrow u-measure-980">
+            <table class="c-table c-table--spec">
+              <tbody>
+                <tr>
+                  <th scope="row">店舗名</th>
+                  <td>{{PROJECT}}</td>
+                </tr>
+                <tr>
+                  <th scope="row">所在地</th>
+                  <td>東京都〇〇区〇〇 0-0-0</td>
+                </tr>
+                <tr>
+                  <th scope="row">営業時間</th>
+                  <td>10:00-19:00</td>
+                </tr>
+                <tr>
+                  <th scope="row">定休日</th>
+                  <td>火曜日・年末年始</td>
+                </tr>
+                <tr>
+                  <th scope="row">アクセス</th>
+                  <td>〇〇駅から徒歩5分 / 近隣にコインパーキングあり</td>
+                </tr>
+                <tr>
+                  <th scope="row">連絡先</th>
+                  <td>03-0000-0000 / info@example.com</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="cta-section l-section l-section--bg-warm" aria-labelledby="cta-title">
+        <div class="l-container c-stack c-stack--cta">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">CONTACT</p>
+            <h2 id="cta-title" class="c-heading__title">来店前の確認につなげる</h2>
+            <p class="c-heading__lead">
+              営業時間の確認、在庫相談、取り置き相談など、来店前のひと押しを支える導線として使えます。
+            </p>
+          </header>
+
+          <div class="u-flex u-flex-sp-col u-gap-16 u-measure-980">
+            <a href="./contact.html" class="c-button c-button--cta">問い合わせる</a>
+            <a href="./products.html" class="c-button c-button--outline-secondary"
+              >商品一覧を見る</a
+            >
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer site-footer--standard" aria-labelledby="footer-title">
+      <div class="l-container c-stack">
+        <h2 id="footer-title" class="u-hidden">フッター</h2>
+
+        <div class="footer__top">
+          <div class="footer__brand c-stack c-stack--gap-16">
+            <p class="footer__title">{{PROJECT}}</p>
+            <p class="footer__desc">
+              店舗紹介テンプレとして背景・こだわり・営業時間を整理しやすい構成です。
+            </p>
+            <p class="footer__meta">Generated from project-generator / {{DATE}}</p>
+          </div>
+
+          <div class="footer__cta">
+            <div class="footer__info">
+              <p class="footer__info-title">Quick Links</p>
+              <p class="footer__info-link"><a href="./contact.html">お問い合わせ</a></p>
+            </div>
+          </div>
+        </div>
+
+        <nav class="footer__nav" aria-label="フッターナビゲーション">
+          <ul class="footer__links">
+            <li><a href="./index.html">トップ</a></li>
+            <li><a href="./products.html">商品一覧</a></li>
+            <li><a href="./about.html">店舗案内</a></li>
+            <li><a href="./contact.html">お問い合わせ</a></li>
+          </ul>
+        </nav>
+
+        <p class="footer__copy"><small>© {{PROJECT}}</small></p>
+      </div>
+    </footer>
+
+    <script type="module" src="./dist/js/core/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{PROJECT}} | {{PAGE_TITLE}}</title>
+    <meta
+      name="description"
+      content="{{PROJECT}} の店舗トップページスターターです。商品カテゴリ、店舗情報、来店導線を整理しやすい最小構成です。"
+    />
+    <meta name="build-date" content="{{DATE}}" />
+    <link rel="stylesheet" href="./dist/css/main.css" />
+  </head>
+  <body>
+    <a href="#main" class="skip-link">本文へスキップ</a>
+
+    <header
+      class="site-header site-header--solid is-sticky site-header--drawer site-header--scroll-light"
+      id="top"
+    >
+      <div class="site-header__inner l-container">
+        <p class="site-title">
+          <a href="./index.html" class="site-title__link">{{PROJECT}}</a>
+        </p>
+
+        <nav class="site-nav js-site-nav" id="site-nav" aria-label="グローバルナビ" hidden>
+          <ul>
+            <li><a href="./index.html" class="is-current" aria-current="page">トップ</a></li>
+            <li><a href="./products.html">商品一覧</a></li>
+            <li><a href="./about.html">店舗案内</a></li>
+            <li><a href="./contact.html" class="site-nav__cta">お問い合わせ</a></li>
+          </ul>
+        </nav>
+
+        <button
+          class="site-nav-toggle js-nav-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="site-nav"
+          aria-label="メニューを開く"
+        >
+          <span class="site-nav-toggle__icon" aria-hidden="true"></span>
+        </button>
+      </div>
+
+      <div class="site-nav-overlay js-nav-overlay" hidden></div>
+    </header>
+
+    <main class="main" id="main">
+      <section class="hero-section hero-section--text l-section" aria-labelledby="hero-title">
+        <div class="l-container c-stack">
+          <div class="c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">SHOP TOP</p>
+            <h1 id="hero-title" class="c-heading__title">{{PROJECT}} の店舗スターター</h1>
+            <p class="c-heading__lead">
+              店舗紹介と商品訴求を両立しやすい、物販向けトップページの最小構成です。
+              商品カテゴリ、注力商品、店舗情報、来店導線をこの1ページで整理できます。
+            </p>
+            <div class="u-flex u-flex-sp-col u-gap-16">
+              <a href="./products.html" class="c-button c-button--cta">商品一覧を見る</a>
+              <a href="./contact.html" class="c-button c-button--outline-secondary"
+                >取り置き・問い合わせへ</a
+              >
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="concept-section l-section l-section--bg-soft" aria-labelledby="concept-title">
+        <div class="l-container c-stack">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">CONCEPT</p>
+            <h2 id="concept-title" class="c-heading__title">店の考え方を伝える</h2>
+            <p class="c-heading__lead">
+              どんな商品を扱う店なのか、選び方の基準、贈り物や日常使いへの向き合い方を整理するセクションです。
+            </p>
+          </header>
+
+          <div class="c-notice c-notice--soft u-measure-980">
+            <p class="c-notice__label">差し替えメモ</p>
+            <div class="c-notice__body">
+              <p>店舗写真や商品写真を使う場合は `./assets/img/` に配置して差し替えてください。</p>
+              <p>
+                ケーキ店、焼き菓子店、コーヒー豆店、雑貨店、ギフトショップなどに流用しやすい文量にしています。
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="featured-products-section l-section"
+        aria-labelledby="featured-products-title"
+      >
+        <div class="l-container c-stack">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">FEATURED PRODUCTS</p>
+            <h2 id="featured-products-title" class="c-heading__title">注力商品</h2>
+            <p class="c-heading__lead">
+              今見せたい商品を3点ほど置いて、トップページから商品一覧へ自然につなげる構成です。
+            </p>
+          </header>
+
+          <div class="l-grid l-grid--cards-3 l-grid--cards-uniform">
+            <article class="c-card c-card--lg">
+              <div class="c-card__body">
+                <p class="text-sub">人気商品</p>
+                <h3 class="c-card__title">定番ギフトセット</h3>
+                <p class="c-card__text">
+                  初めての方にも案内しやすい代表商品です。焼き菓子、雑貨、豆の詰め合わせなどに差し替えられます。
+                </p>
+                <p class="text-sub">税込 3,240円</p>
+              </div>
+            </article>
+
+            <article class="c-card c-card--lg">
+              <div class="c-card__body">
+                <p class="text-sub">季節限定</p>
+                <h3 class="c-card__title">季節のおすすめ</h3>
+                <p class="c-card__text">
+                  旬素材、限定パッケージ、イベント向け商品など、差し替えのしやすい注力枠です。
+                </p>
+                <p class="text-sub">税込 1,620円</p>
+              </div>
+            </article>
+
+            <article class="c-card c-card--lg">
+              <div class="c-card__body">
+                <p class="text-sub">定番商品</p>
+                <h3 class="c-card__title">日常使いの一品</h3>
+                <p class="c-card__text">
+                  リピート購入につながりやすい主力商品や、日常向けの売れ筋商品紹介に向いています。
+                </p>
+                <p class="text-sub">税込 864円</p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="category-list-section l-section l-section--bg-soft"
+        aria-labelledby="category-list-title"
+      >
+        <div class="l-container c-stack">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">CATEGORY LIST</p>
+            <h2 id="category-list-title" class="c-heading__title">カテゴリ一覧</h2>
+            <p class="c-heading__lead">
+              たくさんの種類の商品を扱う店であることがひと目で伝わるよう、カテゴリ単位で整理します。
+            </p>
+          </header>
+
+          <div class="l-grid l-grid--cards-3 l-grid--cards-uniform">
+            <article class="c-card c-card--lg">
+              <div class="c-card__body">
+                <p class="text-sub">CATEGORY 01</p>
+                <h3 class="c-card__title">贈り物向け</h3>
+                <p class="c-card__text">
+                  ギフトボックス、ラッピング対応商品、季節の贈答品などをまとめる枠です。
+                </p>
+              </div>
+            </article>
+
+            <article class="c-card c-card--lg">
+              <div class="c-card__body">
+                <p class="text-sub">CATEGORY 02</p>
+                <h3 class="c-card__title">日常向け</h3>
+                <p class="c-card__text">
+                  毎日使いやすい価格帯の商品、定番商品、まとめ買い向けの商品紹介に使えます。
+                </p>
+              </div>
+            </article>
+
+            <article class="c-card c-card--lg">
+              <div class="c-card__body">
+                <p class="text-sub">CATEGORY 03</p>
+                <h3 class="c-card__title">季節商品</h3>
+                <p class="c-card__text">
+                  期間限定、イベント向け、季節素材の展開など、更新頻度の高いカテゴリ向けです。
+                </p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="shop-info-section l-section" aria-labelledby="shop-info-title">
+        <div class="l-container c-stack">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">SHOP INFO</p>
+            <h2 id="shop-info-title" class="c-heading__title">店舗情報</h2>
+            <p class="c-heading__lead">
+              来店判断に必要な営業時間、所在地、アクセス、連絡先をまとめるための情報整理ブロックです。
+            </p>
+          </header>
+
+          <div class="c-table--wrapper c-table--wrapper--narrow u-measure-980">
+            <table class="c-table c-table--spec">
+              <tbody>
+                <tr>
+                  <th scope="row">店舗名</th>
+                  <td>{{PROJECT}}</td>
+                </tr>
+                <tr>
+                  <th scope="row">所在地</th>
+                  <td>東京都〇〇区〇〇 0-0-0</td>
+                </tr>
+                <tr>
+                  <th scope="row">営業時間</th>
+                  <td>10:00-19:00</td>
+                </tr>
+                <tr>
+                  <th scope="row">定休日</th>
+                  <td>火曜日</td>
+                </tr>
+                <tr>
+                  <th scope="row">アクセス</th>
+                  <td>〇〇駅から徒歩5分 / 駐車場2台</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="cta-section l-section l-section--bg-warm" aria-labelledby="cta-title">
+        <div class="l-container c-stack c-stack--cta">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">CONTACT</p>
+            <h2 id="cta-title" class="c-heading__title">来店前の相談につなげる</h2>
+            <p class="c-heading__lead">
+              商品確認、取り置き相談、営業時間の確認など、来店前に必要な導線をここにまとめます。
+            </p>
+          </header>
+
+          <div class="u-flex u-flex-sp-col u-gap-16 u-measure-980">
+            <a href="./contact.html" class="c-button c-button--cta">問い合わせる</a>
+            <a href="./products.html" class="c-button c-button--outline-secondary"
+              >商品一覧を見る</a
+            >
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer site-footer--standard" aria-labelledby="footer-title">
+      <div class="l-container c-stack">
+        <h2 id="footer-title" class="u-hidden">フッター</h2>
+
+        <div class="footer__top">
+          <div class="footer__brand c-stack c-stack--gap-16">
+            <p class="footer__title">{{PROJECT}}</p>
+            <p class="footer__desc">
+              店舗・物販向けスターターとして商品と店舗情報を整理しやすい構成です。
+            </p>
+            <p class="footer__meta">Generated from project-generator / {{DATE}}</p>
+          </div>
+
+          <div class="footer__cta">
+            <div class="footer__info">
+              <p class="footer__info-title">Quick Links</p>
+              <p class="footer__info-link"><a href="./contact.html">お問い合わせ</a></p>
+            </div>
+          </div>
+        </div>
+
+        <nav class="footer__nav" aria-label="フッターナビゲーション">
+          <ul class="footer__links">
+            <li><a href="./index.html">トップ</a></li>
+            <li><a href="./products.html">商品一覧</a></li>
+            <li><a href="./about.html">店舗案内</a></li>
+            <li><a href="./contact.html">お問い合わせ</a></li>
+          </ul>
+        </nav>
+
+        <p class="footer__copy"><small>© {{PROJECT}}</small></p>
+      </div>
+    </footer>
+
+    <script type="module" src="./dist/js/core/app.js"></script>
+  </body>
+</html>

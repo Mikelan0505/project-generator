@@ -1,20 +1,9 @@
-# ------------------
-# generated projects
-# ------------------
-*_corporate_*
-*_event_*
-*_service-lp_*
-*_lp_*
-
-# ------------------
-# cache / misc
-# ------------------
+# Python cache
 __pycache__/
 *.pyc
 
-# ------------------
-# OS
-# ------------------
-.DS_Store
-Thumbs.db
+# Generated projects
+outputs/
 
+# Editor
+.vscode/

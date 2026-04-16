@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{PAGE_TITLE}} | {{PROJECT}}</title>
+    <meta
+      name="description"
+      content="{{PROJECT}} のお問い合わせスターターです。実務で差し替えやすい最小フォーム構成にしています。"
+    />
+    <meta name="build-date" content="{{DATE}}" />
+    <link rel="stylesheet" href="./dist/css/main.css" />
+  </head>
+  <body>
+    <a href="#main" class="skip-link">本文へスキップ</a>
+
+    <header
+      class="site-header site-header--solid is-sticky site-header--drawer site-header--scroll-light"
+      id="top"
+    >
+      <div class="site-header__inner l-container">
+        <p class="site-title">
+          <a href="./index.html" class="site-title__link">{{PROJECT}}</a>
+        </p>
+
+        <nav class="site-nav js-site-nav" id="site-nav" aria-label="グローバルナビ" hidden>
+          <ul>
+            <li><a href="./index.html">トップ</a></li>
+            <li><a href="./about.html">会社案内</a></li>
+            <li><a href="./service.html">サービス</a></li>
+            <li>
+              <a href="./contact.html" class="site-nav__cta is-current" aria-current="page">
+                お問い合わせ
+              </a>
+            </li>
+          </ul>
+        </nav>
+
+        <button
+          class="site-nav-toggle js-nav-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="site-nav"
+          aria-label="メニューを開く"
+        >
+          <span class="site-nav-toggle__icon" aria-hidden="true"></span>
+        </button>
+      </div>
+
+      <div class="site-nav-overlay js-nav-overlay" hidden></div>
+    </header>
+
+    <main class="main" id="main">
+      <section class="page-hero-section l-section" aria-labelledby="page-hero-title">
+        <div class="l-container c-stack">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">CONTACT</p>
+            <h1 id="page-hero-title" class="c-heading__title">お問い合わせページの土台</h1>
+            <p class="c-heading__lead">
+              相談導線とフォームを最短で整えたいときのための、シンプルなスターターです。
+            </p>
+          </header>
+        </div>
+      </section>
+
+      <section
+        class="contact-intro-section l-section l-section--bg-soft"
+        aria-labelledby="contact-intro-title"
+      >
+        <div class="l-container c-stack">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">GUIDE</p>
+            <h2 id="contact-intro-title" class="c-heading__title">お問い合わせ前の案内</h2>
+            <p class="c-heading__lead">
+              相談内容が固まっていなくても送れる前提にすると、初回接触のハードルを下げやすくなります。
+            </p>
+          </header>
+
+          <div class="c-points c-points--no-media u-measure-980">
+            <div class="c-points__list">
+              <article class="c-points__item">
+                <p class="c-points__num">01</p>
+                <div class="c-points__body">
+                  <h3 class="c-points__title">相談したい内容</h3>
+                  <p class="c-points__text">
+                    何についての問い合わせかをひとことで整理できるようにします。
+                  </p>
+                </div>
+              </article>
+
+              <article class="c-points__item">
+                <p class="c-points__num">02</p>
+                <div class="c-points__body">
+                  <h3 class="c-points__title">希望する連絡方法</h3>
+                  <p class="c-points__text">
+                    メール、電話、オンライン打ち合わせなどに差し替えて利用できます。
+                  </p>
+                </div>
+              </article>
+
+              <article class="c-points__item">
+                <p class="c-points__num">03</p>
+                <div class="c-points__body">
+                  <h3 class="c-points__title">返信目安</h3>
+                  <p class="c-points__text">
+                    営業日や返信時間の目安を追記する用途を想定しています。
+                  </p>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="form-section l-section" aria-labelledby="form-title">
+        <div class="l-container c-stack">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">FORM</p>
+            <h2 id="form-title" class="c-heading__title">お問い合わせフォーム</h2>
+            <p class="c-heading__lead">
+              実案件で差し替えやすいよう、必須項目を絞ったシンプルなフォームにしています。
+            </p>
+          </header>
+
+          <div class="u-measure-980">
+            <form id="contact-form" class="c-form" action="#" method="post">
+              <div class="c-form__group">
+                <label for="name" class="c-label">会社名 / お名前</label>
+                <input
+                  class="c-input"
+                  type="text"
+                  id="name"
+                  name="name"
+                  autocomplete="name"
+                  required
+                />
+              </div>
+
+              <div class="c-form__group">
+                <label for="email" class="c-label">メールアドレス</label>
+                <input
+                  class="c-input"
+                  type="email"
+                  id="email"
+                  name="email"
+                  autocomplete="email"
+                  required
+                />
+              </div>
+
+              <div class="c-form__group">
+                <label for="tel" class="c-label">電話番号</label>
+                <input class="c-input" type="tel" id="tel" name="tel" autocomplete="tel" />
+              </div>
+
+              <div class="c-form__group">
+                <label for="category" class="c-label">お問い合わせ種別</label>
+                <select class="c-select" id="category" name="category" required>
+                  <option value="">選択してください</option>
+                  <option value="estimate">見積相談</option>
+                  <option value="service">サービスについて</option>
+                  <option value="meeting">打ち合わせ希望</option>
+                  <option value="other">その他</option>
+                </select>
+              </div>
+
+              <fieldset class="c-form__group c-form__group--choice">
+                <legend class="c-label">希望連絡方法</legend>
+
+                <div class="c-form__choices">
+                  <label class="c-form__choice" for="contact-by-email">
+                    <input
+                      class="c-form__radio"
+                      type="radio"
+                      id="contact-by-email"
+                      name="contact-method"
+                      value="email"
+                      required
+                    />
+                    <span>メール</span>
+                  </label>
+
+                  <label class="c-form__choice" for="contact-by-tel">
+                    <input
+                      class="c-form__radio"
+                      type="radio"
+                      id="contact-by-tel"
+                      name="contact-method"
+                      value="tel"
+                      required
+                    />
+                    <span>電話</span>
+                  </label>
+
+                  <label class="c-form__choice" for="contact-either">
+                    <input
+                      class="c-form__radio"
+                      type="radio"
+                      id="contact-either"
+                      name="contact-method"
+                      value="either"
+                      required
+                    />
+                    <span>どちらでも可</span>
+                  </label>
+                </div>
+              </fieldset>
+
+              <div class="c-form__group">
+                <label for="message" class="c-label">お問い合わせ内容</label>
+                <textarea
+                  class="c-textarea"
+                  id="message"
+                  name="message"
+                  rows="8"
+                  required
+                ></textarea>
+              </div>
+
+              <div class="c-form__group">
+                <label class="c-form__checkbox" for="consent">
+                  <input
+                    class="c-form__check"
+                    type="checkbox"
+                    id="consent"
+                    name="consent"
+                    required
+                  />
+                  <span>個人情報の取り扱いに同意する</span>
+                </label>
+              </div>
+
+              <button class="c-button c-button--cta c-form__submit" type="submit">送信する</button>
+            </form>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer site-footer--standard" aria-labelledby="footer-title">
+      <div class="l-container c-stack">
+        <h2 id="footer-title" class="u-hidden">フッター</h2>
+
+        <div class="footer__top">
+          <div class="footer__brand c-stack c-stack--gap-16">
+            <p class="footer__title">{{PROJECT}}</p>
+            <p class="footer__desc">最小構成の問い合わせページスターターです。</p>
+            <p class="footer__meta">Generated from project-generator / {{DATE}}</p>
+          </div>
+
+          <div class="footer__cta">
+            <div class="footer__info">
+              <p class="footer__info-title">Quick Links</p>
+              <p class="footer__info-link"><a href="./index.html">トップへ戻る</a></p>
+            </div>
+          </div>
+        </div>
+
+        <nav class="footer__nav" aria-label="フッターナビゲーション">
+          <ul class="footer__links">
+            <li><a href="./index.html">トップ</a></li>
+            <li><a href="./about.html">会社案内</a></li>
+            <li><a href="./service.html">サービス</a></li>
+            <li><a href="./contact.html">お問い合わせ</a></li>
+          </ul>
+        </nav>
+
+        <p class="footer__copy"><small>© {{PROJECT}}</small></p>
+      </div>
+    </footer>
+
+    <script type="module" src="./dist/js/core/app.js"></script>
+  </body>
+</html>

@@ -1,283 +1,422 @@
 <!doctype html>
 <html lang="ja">
   <head>
-    <meta charset="utf-8" />
+    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{{PROJECT}}</title>
+    <title>{{PROJECT}} | {{PAGE_TITLE}}</title>
+    <meta
+      name="description"
+      content="{{PROJECT}} のランディングページスターターです。仕事用の最小構成として再利用しやすく整えています。"
+    />
+    <meta name="build-date" content="{{DATE}}" />
     <link rel="stylesheet" href="./dist/css/main.css" />
   </head>
   <body>
-    <!-- Header -->
-    <header class="site-header">
-      <div class="l-container site-header__inner">
-        <p class="brand">{{PROJECT}}</p>
+    <a href="#main" class="skip-link">本文へスキップ</a>
 
-        <nav class="site-nav" aria-label="ページ内ナビ">
-          <a href="#services">サービス</a>
-          <a href="#pricing">料金</a>
-          <a href="#faq">FAQ</a>
+    <header
+      class="site-header site-header--solid is-sticky site-header--drawer site-header--scroll-light"
+      id="top"
+    >
+      <div class="site-header__inner l-container">
+        <p class="site-title">
+          <a href="#top" class="site-title__link">{{PROJECT}}</a>
+        </p>
+
+        <nav class="site-nav js-site-nav" id="site-nav" aria-label="ページ内ナビゲーション" hidden>
+          <ul>
+            <li><a href="#problem">課題</a></li>
+            <li><a href="#solution">特徴</a></li>
+            <li><a href="#offer">提供内容</a></li>
+            <li><a href="#proof">信頼材料</a></li>
+            <li><a href="#flow">流れ</a></li>
+            <li><a href="#faq">FAQ</a></li>
+            <li><a href="#cta" class="site-nav__cta">お問い合わせ</a></li>
+          </ul>
         </nav>
 
-        <a class="c-button c-button--primary" href="#reserve">予約する</a>
+        <button
+          class="site-nav-toggle js-nav-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="site-nav"
+          aria-label="メニューを開く"
+        >
+          <span class="site-nav-toggle__icon" aria-hidden="true"></span>
+        </button>
       </div>
+
+      <div class="site-nav-overlay js-nav-overlay" hidden></div>
     </header>
 
-    <main class="main">
-      <!-- Hero -->
-      <section class="l-section hero" id="hero">
-        <div class="l-container hero__inner">
-          <div class="hero__content">
-            <p class="eyebrow">予約型サービス</p>
-            <h1 class="hero__title">{{PROJECT}}</h1>
-            <p class="hero__lead">ここに短い説明（2〜3行）</p>
-
-            <ul class="checklist" aria-label="ベネフィット">
-              <li>ベネフィット 01</li>
-              <li>ベネフィット 02</li>
-              <li>ベネフィット 03</li>
-            </ul>
-
-            <div class="hero__cta">
-              <a class="c-button c-button--primary c-button--lg" href="#reserve">予約する</a>
-              <a class="c-button c-button--secondary c-button--lg" href="#pricing">料金を見る</a>
-            </div>
-
-            <p class="note">※注意書き・補足など</p>
-          </div>
-
-          <div class="hero__visual" aria-hidden="true">
-            <div class="placeholder">IMAGE</div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Problems -->
-      <section class="l-section" id="problems">
-        <div class="l-container">
-          <h2 class="section__title">こんなお悩みありませんか？</h2>
-          <p class="section__lead">共感パート（短文）</p>
-
-          <ul class="checklist checklist--grid" aria-label="お悩みリスト">
-            <li>悩み 01</li>
-            <li>悩み 02</li>
-            <li>悩み 03</li>
-            <li>悩み 04</li>
-            <li>悩み 05</li>
-            <li>悩み 06</li>
-          </ul>
-        </div>
-      </section>
-
-      <!-- Solution -->
-      <section class="l-section section--alt" id="solution">
-        <div class="l-container">
-          <h2 class="section__title">このサービスでこう変わります</h2>
-          <p class="section__lead">Before / After の説明</p>
-
-          <div class="grid grid--2">
-            <div class="card">
-              <h3 class="card__title">Before</h3>
-              <p class="card__text">課題の状態（文章）</p>
-            </div>
-            <div class="card">
-              <h3 class="card__title">After</h3>
-              <p class="card__text">理想の状態（文章）</p>
+    <main class="main" id="main">
+      <section class="hero-section l-section" aria-labelledby="hero-title">
+        <div class="l-container c-stack">
+          <div class="c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">TOP</p>
+            <h1 id="hero-title" class="c-heading__title">{{PROJECT}} のスターターサイト</h1>
+            <p class="c-heading__lead">
+              案件開始時にすぐ着手できるよう、必要最低限の構成だけを整えたトップページです。
+              テキスト、画像、導線を差し替えながら実案件向けに育てていきます。
+            </p>
+            <div class="u-flex u-flex-sp-col u-gap-16">
+              <a href="./contact.html" class="c-button c-button--cta">お問い合わせ導線を確認</a>
+              <a href="./service.html" class="c-button c-button--outline-secondary"
+                >サービスページを見る</a
+              >
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Services -->
-      <section class="l-section" id="services">
-        <div class="l-container">
-          <h2 class="section__title">サービス内容</h2>
-          <p class="section__lead">何が受けられるのか</p>
+      <section
+        id="problem"
+        class="problem-section l-section l-section--bg-soft"
+        aria-labelledby="problem-title"
+      >
+        <div class="l-container c-stack">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">PROBLEM</p>
+            <h2 id="problem-title" class="c-heading__title">こんな課題を抱えている方向け</h2>
+            <p class="c-heading__lead">
+              ユーザーの悩みを先に言語化することで、この LP が自分向けだと伝えやすくなります。
+            </p>
+          </header>
 
-          <div class="grid grid--3">
-            <article class="card">
-              <h3 class="card__title">メニュー 01</h3>
-              <p class="card__text">説明テキスト</p>
+          <div class="c-points c-points--no-media u-measure-980">
+            <div class="c-points__list">
+              <article class="c-points__item">
+                <p class="c-points__num">01</p>
+                <div class="c-points__body">
+                  <h3 class="c-points__title">何から始めればよいかわからない</h3>
+                  <p class="c-points__text">
+                    相談先や進め方が見えないケースを想定した課題訴求です。
+                  </p>
+                </div>
+              </article>
+
+              <article class="c-points__item">
+                <p class="c-points__num">02</p>
+                <div class="c-points__body">
+                  <h3 class="c-points__title">比較検討に時間がかかっている</h3>
+                  <p class="c-points__text">
+                    候補整理や提案比較に悩むユーザー像へ寄せた説明を入れます。
+                  </p>
+                </div>
+              </article>
+
+              <article class="c-points__item">
+                <p class="c-points__num">03</p>
+                <div class="c-points__body">
+                  <h3 class="c-points__title">相談後の進み方が不安</h3>
+                  <p class="c-points__text">
+                    問い合わせ後の流れや支援範囲の見えづらさを解消する訴求です。
+                  </p>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="solution" class="solution-section l-section" aria-labelledby="solution-title">
+        <div class="l-container c-stack">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">SOLUTION</p>
+            <h2 id="solution-title" class="c-heading__title">解決策と特徴</h2>
+            <p class="c-heading__lead">
+              悩みに対して何を提供できるのかを、特徴ベースで整理して見せるセクションです。
+            </p>
+          </header>
+
+          <div class="l-grid l-grid--cards-3 l-grid--cards-uniform">
+            <article class="c-card c-card--lg">
+              <div class="c-card__body">
+                <p class="text-sub">FEATURE 01</p>
+                <h3 class="c-card__title">要件整理から支援</h3>
+                <p class="c-card__text">
+                  はじめての依頼でも相談しやすい進め方に差し替えて利用します。
+                </p>
+              </div>
             </article>
-            <article class="card">
-              <h3 class="card__title">メニュー 02</h3>
-              <p class="card__text">説明テキスト</p>
+
+            <article class="c-card c-card--lg">
+              <div class="c-card__body">
+                <p class="text-sub">FEATURE 02</p>
+                <h3 class="c-card__title">実行まで一貫対応</h3>
+                <p class="c-card__text">
+                  提案だけで終わらず、実装や運用まで伴走する訴求に向いています。
+                </p>
+              </div>
             </article>
-            <article class="card">
-              <h3 class="card__title">メニュー 03</h3>
-              <p class="card__text">説明テキスト</p>
+
+            <article class="c-card c-card--lg">
+              <div class="c-card__body">
+                <p class="text-sub">FEATURE 03</p>
+                <h3 class="c-card__title">成果を見ながら改善</h3>
+                <p class="c-card__text">継続支援や改善提案を価値として見せたいときに使う枠です。</p>
+              </div>
             </article>
           </div>
         </div>
       </section>
 
-      <!-- Pricing -->
-      <section class="l-section section--alt" id="pricing">
-        <div class="l-container">
-          <h2 class="section__title">料金</h2>
-          <p class="section__lead">プラン比較（1〜3）</p>
+      <section
+        id="offer"
+        class="offer-section l-section l-section--bg-soft"
+        aria-labelledby="offer-title"
+      >
+        <div class="l-container c-stack">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">OFFER</p>
+            <h2 id="offer-title" class="c-heading__title">提供内容</h2>
+            <p class="c-heading__lead">
+              商品、プラン、支援メニューなどを比較しやすい形で並べるためのエリアです。
+            </p>
+          </header>
 
-          <div class="grid grid--3">
-            <article class="card price">
-              <h3 class="card__title">プランA</h3>
-              <p class="price__amount">¥00,000</p>
-              <ul class="bullets" aria-label="含まれる内容">
-                <li>内容 01</li>
-                <li>内容 02</li>
-                <li>内容 03</li>
-              </ul>
-              <a class="c-button c-button--primary c-button--block" href="#reserve"
-                >このプランで予約</a
-              >
+          <div class="l-grid l-grid--cards-3 l-grid--cards-uniform">
+            <article class="c-card c-card--lg">
+              <div class="c-card__body">
+                <p class="text-sub">PLAN 01</p>
+                <h3 class="c-card__title">基本プラン</h3>
+                <p class="c-card__text">まず案内したい標準プランの説明枠です。</p>
+              </div>
             </article>
 
-            <article class="card price price--featured" aria-label="おすすめプラン">
-              <p class="badge">おすすめ</p>
-              <h3 class="card__title">プランB</h3>
-              <p class="price__amount">¥00,000</p>
-              <ul class="bullets" aria-label="含まれる内容">
-                <li>内容 01</li>
-                <li>内容 02</li>
-                <li>内容 03</li>
-              </ul>
-              <a class="c-button c-button--primary c-button--block" href="#reserve"
-                >このプランで予約</a
-              >
+            <article class="c-card c-card--lg">
+              <div class="c-card__body">
+                <p class="text-sub">PLAN 02</p>
+                <h3 class="c-card__title">おすすめプラン</h3>
+                <p class="c-card__text">
+                  最も訴求したいオファーを中央に置く使い方を想定しています。
+                </p>
+              </div>
             </article>
 
-            <article class="card price">
-              <h3 class="card__title">プランC</h3>
-              <p class="price__amount">¥00,000</p>
-              <ul class="bullets" aria-label="含まれる内容">
-                <li>内容 01</li>
-                <li>内容 02</li>
-                <li>内容 03</li>
-              </ul>
-              <a class="c-button c-button--primary c-button--block" href="#reserve"
-                >このプランで予約</a
-              >
+            <article class="c-card c-card--lg">
+              <div class="c-card__body">
+                <p class="text-sub">PLAN 03</p>
+                <h3 class="c-card__title">拡張プラン</h3>
+                <p class="c-card__text">保守、追加支援、上位支援などをここに配置できます。</p>
+              </div>
             </article>
           </div>
         </div>
       </section>
 
-      <!-- Flow -->
-      <section class="l-section" id="flow">
-        <div class="l-container">
-          <h2 class="section__title">予約の流れ</h2>
+      <section id="proof" class="proof-section l-section" aria-labelledby="proof-title">
+        <div class="l-container c-stack">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">PROOF</p>
+            <h2 id="proof-title" class="c-heading__title">信頼材料</h2>
+            <p class="c-heading__lead">
+              実績、導入社数、レビュー、運営情報などの信頼要素をここで整理します。
+            </p>
+          </header>
 
-          <ol class="steps" aria-label="予約ステップ">
-            <li class="step">
-              <p class="step__num">Step 1</p>
-              <h3 class="step__title">メニューを選ぶ</h3>
-              <p class="step__text">説明テキスト</p>
+          <div class="l-grid l-grid--cards-3 l-grid--cards-uniform">
+            <article class="c-card c-card--lg">
+              <div class="c-card__body">
+                <p class="text-sub">PROOF 01</p>
+                <h3 class="c-card__title">実績数</h3>
+                <p class="c-card__text">導入件数や継続率など、数字で見せやすい要素を入れます。</p>
+              </div>
+            </article>
+
+            <article class="c-card c-card--lg">
+              <div class="c-card__body">
+                <p class="text-sub">PROOF 02</p>
+                <h3 class="c-card__title">支援事例</h3>
+                <p class="c-card__text">代表的な案件や改善例を簡潔に載せると信頼補強になります。</p>
+              </div>
+            </article>
+
+            <article class="c-card c-card--lg">
+              <div class="c-card__body">
+                <p class="text-sub">PROOF 03</p>
+                <h3 class="c-card__title">運営情報</h3>
+                <p class="c-card__text">
+                  会社概要や担当体制、サポート範囲などへ差し替えて使えます。
+                </p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="flow"
+        class="flow-section l-section l-section--bg-soft"
+        aria-labelledby="flow-title"
+      >
+        <div class="l-container c-stack">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">FLOW</p>
+            <h2 id="flow-title" class="c-heading__title">進行の流れ</h2>
+            <p class="c-heading__lead">
+              LP では問い合わせ前後の流れを見せることで、行動への不安を減らしやすくなります。
+            </p>
+          </header>
+
+          <ol class="flow-list u-measure-1200" aria-label="進行の流れ">
+            <li class="flow-list__item">
+              <span class="flow-list__num">01</span>
+              <div class="flow-list__body">
+                <h3 class="flow-list__title">お問い合わせ</h3>
+                <p class="flow-list__text">フォームや相談導線から連絡を受け付けます。</p>
+              </div>
             </li>
-            <li class="step">
-              <p class="step__num">Step 2</p>
-              <h3 class="step__title">日時を選ぶ</h3>
-              <p class="step__text">説明テキスト</p>
+
+            <li class="flow-list__item">
+              <span class="flow-list__num">02</span>
+              <div class="flow-list__body">
+                <h3 class="flow-list__title">ヒアリング</h3>
+                <p class="flow-list__text">課題や要望を整理し、必要条件を確認します。</p>
+              </div>
             </li>
-            <li class="step">
-              <p class="step__num">Step 3</p>
-              <h3 class="step__title">確定して完了</h3>
-              <p class="step__text">説明テキスト</p>
+
+            <li class="flow-list__item">
+              <span class="flow-list__num">03</span>
+              <div class="flow-list__body">
+                <h3 class="flow-list__title">提案・実施</h3>
+                <p class="flow-list__text">提案後、決定内容に応じて作業を進行します。</p>
+              </div>
+            </li>
+
+            <li class="flow-list__item">
+              <span class="flow-list__num">04</span>
+              <div class="flow-list__body">
+                <h3 class="flow-list__title">納品・改善</h3>
+                <p class="flow-list__text">公開後の運用や改善支援がある場合はここで示します。</p>
+              </div>
             </li>
           </ol>
         </div>
       </section>
 
-      <!-- Reviews -->
-      <section class="l-section section--alt" id="reviews">
-        <div class="l-container">
-          <h2 class="section__title">お客様の声</h2>
+      <section id="faq" class="faq-section l-section" aria-labelledby="faq-title">
+        <div class="l-container c-stack">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">FAQ</p>
+            <h2 id="faq-title" class="c-heading__title">よくある質問</h2>
+            <p class="c-heading__lead">
+              LP でよく詰まりやすい懸念を事前に解消するための FAQ ブロックです。
+            </p>
+          </header>
 
-          <div class="grid grid--3">
-            <article class="card">
-              <p class="stars" aria-label="評価">★★★★★</p>
-              <p class="card__text">レビュー本文（短文）</p>
-              <p class="meta">30代 / 女性</p>
-            </article>
-            <article class="card">
-              <p class="stars" aria-label="評価">★★★★★</p>
-              <p class="card__text">レビュー本文（短文）</p>
-              <p class="meta">40代 / 男性</p>
-            </article>
-            <article class="card">
-              <p class="stars" aria-label="評価">★★★★★</p>
-              <p class="card__text">レビュー本文（短文）</p>
-              <p class="meta">50代 / 女性</p>
-            </article>
+          <div class="c-accordion u-measure-980">
+            <div class="c-accordion__item" data-open="1">
+              <h3 class="c-accordion__header">
+                <button
+                  class="c-accordion__trigger c-accordion__trigger--with-prefix"
+                  type="button"
+                  aria-expanded="true"
+                  aria-controls="faq-a1"
+                >
+                  <span class="c-accordion__prefix" aria-hidden="true">Q</span>
+                  <span class="c-accordion__label">初回相談は無料ですか？</span>
+                  <span class="c-accordion__icon" aria-hidden="true"></span>
+                </button>
+              </h3>
+              <div id="faq-a1" class="c-accordion__content">
+                <p>無料相談、見積相談、初回ヒアリングなどに差し替えて利用できます。</p>
+              </div>
+            </div>
+
+            <div class="c-accordion__item">
+              <h3 class="c-accordion__header">
+                <button
+                  class="c-accordion__trigger c-accordion__trigger--with-prefix"
+                  type="button"
+                  aria-expanded="false"
+                  aria-controls="faq-a2"
+                >
+                  <span class="c-accordion__prefix" aria-hidden="true">Q</span>
+                  <span class="c-accordion__label">どの段階から相談できますか？</span>
+                  <span class="c-accordion__icon" aria-hidden="true"></span>
+                </button>
+              </h3>
+              <div id="faq-a2" class="c-accordion__content" hidden>
+                <p>情報整理前でも相談可能、といった安心材料を入れる想定です。</p>
+              </div>
+            </div>
+
+            <div class="c-accordion__item">
+              <h3 class="c-accordion__header">
+                <button
+                  class="c-accordion__trigger c-accordion__trigger--with-prefix"
+                  type="button"
+                  aria-expanded="false"
+                  aria-controls="faq-a3"
+                >
+                  <span class="c-accordion__prefix" aria-hidden="true">Q</span>
+                  <span class="c-accordion__label">対応エリアや対象範囲は？</span>
+                  <span class="c-accordion__icon" aria-hidden="true"></span>
+                </button>
+              </h3>
+              <div id="faq-a3" class="c-accordion__content" hidden>
+                <p>エリア、業種、対応業務の範囲など、実案件向けに差し替えてください。</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <!-- FAQ -->
-      <section class="l-section" id="faq">
-        <div class="l-container">
-          <h2 class="section__title">よくある質問</h2>
+      <section
+        id="cta"
+        class="cta-section l-section l-section--bg-warm"
+        aria-labelledby="cta-title"
+      >
+        <div class="l-container c-stack c-stack--cta">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">CONTACT</p>
+            <h2 id="cta-title" class="c-heading__title">行動を促す最終導線</h2>
+            <p class="c-heading__lead">
+              無料相談、資料請求、問い合わせなど、LP の目的に応じて最終導線を差し替えます。
+            </p>
+          </header>
 
-          <div class="faq" role="list">
-            <details class="faq__item" role="listitem">
-              <summary class="faq__q">キャンセルはできますか？</summary>
-              <div class="faq__a">回答テキスト</div>
-            </details>
-            <details class="faq__item" role="listitem">
-              <summary class="faq__q">所要時間はどれくらい？</summary>
-              <div class="faq__a">回答テキスト</div>
-            </details>
-            <details class="faq__item" role="listitem">
-              <summary class="faq__q">支払い方法は？</summary>
-              <div class="faq__a">回答テキスト</div>
-            </details>
+          <div class="u-flex u-flex-sp-col u-gap-16 u-measure-980">
+            <a href="mailto:info@example.com" class="c-button c-button--cta">お問い合わせする</a>
+            <a href="#top" class="c-button c-button--outline-secondary">ページ上部へ戻る</a>
           </div>
-        </div>
-      </section>
-
-      <!-- Reserve (CTA) -->
-      <section class="l-section reserve" id="reserve">
-        <div class="l-container reserve__inner">
-          <h2 class="section__title">今すぐ予約しませんか？</h2>
-          <p class="section__lead">最後のひと押し（安心材料）</p>
-
-          <div class="reserve__cta">
-            <a class="c-button c-button--primary c-button--xl" href="#reserve">予約フォームへ</a>
-            <a class="c-button c-button--secondary c-button--xl" href="tel:{{TEL}}">電話で相談</a>
-          </div>
-
-          <ul class="bullets bullets--inline" aria-label="安心材料">
-            <li>当日OK</li>
-            <li>キャンセル可</li>
-            <li>所要時間〇分</li>
-          </ul>
         </div>
       </section>
     </main>
 
-    <!-- Footer -->
-    <footer class="site-footer footer--lp">
-      <div class="l-container">
-        <div class="footer__body footer__cols">
-          <div>
-            <p class="brand">{{PROJECT}}</p>
-            <p class="meta">営業時間：00:00〜00:00</p>
-            <p class="meta">住所：〇〇〇〇</p>
+    <footer class="site-footer site-footer--standard" aria-labelledby="footer-title">
+      <div class="l-container c-stack">
+        <h2 id="footer-title" class="u-hidden">フッター</h2>
+
+        <div class="footer__top">
+          <div class="footer__brand c-stack c-stack--gap-16">
+            <p class="footer__title">{{PROJECT}}</p>
+            <p class="footer__desc">仕事用 LP の最小スターターとして使うための土台です。</p>
+            <p class="footer__meta">Generated from project-generator / {{DATE}}</p>
           </div>
-          <div>
-            <p class="footer__title">リンク</p>
-            <ul class="footer__links">
-              <li><a href="#services">サービス</a></li>
-              <li><a href="#pricing">料金</a></li>
-              <li><a href="#faq">FAQ</a></li>
-            </ul>
+
+          <div class="footer__cta">
+            <div class="footer__info">
+              <p class="footer__info-title">お問い合わせ</p>
+              <p class="footer__info-link"><a href="#cta">お問い合わせ導線へ</a></p>
+            </div>
           </div>
         </div>
-        <small class="footer__copy">© {{PROJECT}}</small>
+
+        <nav class="footer__nav" aria-label="フッターナビゲーション">
+          <ul class="footer__links">
+            <li><a href="#problem">課題</a></li>
+            <li><a href="#solution">特徴</a></li>
+            <li><a href="#offer">提供内容</a></li>
+            <li><a href="#faq">FAQ</a></li>
+          </ul>
+        </nav>
+
+        <p class="footer__copy"><small>© {{PROJECT}}</small></p>
       </div>
     </footer>
 
-    <!-- SP fixed CTA -->
-    <div class="fixed-cta" role="region" aria-label="固定CTA">
-      <a class="c-button c-button--secondary c-button--block" href="tel:{{TEL}}">{{TEL_DISPLAY}}</a>
-      <a class="c-button c-button--primary c-button--block" href="#reserve">予約</a>
-    </div>
+    <script type="module" src="./dist/js/core/app.js"></script>
   </body>
 </html>

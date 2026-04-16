@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{PAGE_TITLE}} | {{PROJECT}}</title>
+    <meta
+      name="description"
+      content="{{PROJECT}} のサービス紹介スターターです。提供内容を整理して掲載しやすい最小構成にしています。"
+    />
+    <meta name="build-date" content="{{DATE}}" />
+    <link rel="stylesheet" href="./dist/css/main.css" />
+  </head>
+  <body>
+    <a href="#main" class="skip-link">本文へスキップ</a>
+
+    <header
+      class="site-header site-header--solid is-sticky site-header--drawer site-header--scroll-light"
+      id="top"
+    >
+      <div class="site-header__inner l-container">
+        <p class="site-title">
+          <a href="./index.html" class="site-title__link">{{PROJECT}}</a>
+        </p>
+
+        <nav class="site-nav js-site-nav" id="site-nav" aria-label="グローバルナビ" hidden>
+          <ul>
+            <li><a href="./index.html">トップ</a></li>
+            <li><a href="./about.html">会社案内</a></li>
+            <li><a href="./service.html" class="is-current" aria-current="page">サービス</a></li>
+            <li><a href="./contact.html" class="site-nav__cta">お問い合わせ</a></li>
+          </ul>
+        </nav>
+
+        <button
+          class="site-nav-toggle js-nav-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="site-nav"
+          aria-label="メニューを開く"
+        >
+          <span class="site-nav-toggle__icon" aria-hidden="true"></span>
+        </button>
+      </div>
+
+      <div class="site-nav-overlay js-nav-overlay" hidden></div>
+    </header>
+
+    <main class="main" id="main">
+      <section class="page-hero-section l-section" aria-labelledby="page-hero-title">
+        <div class="l-container c-stack">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">SERVICE</p>
+            <h1 id="page-hero-title" class="c-heading__title">サービスページの土台</h1>
+            <p class="c-heading__lead">
+              提供内容の整理、比較、導線づくりをしやすくするためのスターターページです。
+            </p>
+          </header>
+        </div>
+      </section>
+
+      <section
+        class="service-list-section l-section l-section--bg-soft"
+        aria-labelledby="service-list-title"
+      >
+        <div class="l-container c-stack">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">SERVICES</p>
+            <h2 id="service-list-title" class="c-heading__title">サービス一覧</h2>
+            <p class="c-heading__lead">
+              案件のサービス構成に応じて、カテゴリやプランを差し替えられる3列の枠です。
+            </p>
+          </header>
+
+          <div class="l-grid l-grid--cards-3 l-grid--cards-uniform">
+            <article class="c-card c-card--lg">
+              <div class="c-card__body">
+                <p class="text-sub">PLAN 01</p>
+                <h3 class="c-card__title">基本サービス</h3>
+                <p class="c-card__text">主軸になるサービス内容、対象、概要説明を入れます。</p>
+              </div>
+            </article>
+
+            <article class="c-card c-card--lg">
+              <div class="c-card__body">
+                <p class="text-sub">PLAN 02</p>
+                <h3 class="c-card__title">拡張サービス</h3>
+                <p class="c-card__text">オプションや上位プラン、追加支援内容を載せる想定です。</p>
+              </div>
+            </article>
+
+            <article class="c-card c-card--lg">
+              <div class="c-card__body">
+                <p class="text-sub">PLAN 03</p>
+                <h3 class="c-card__title">保守・運用</h3>
+                <p class="c-card__text">納品後サポートや定期運用などを説明するためのカードです。</p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="strengths-section l-section" aria-labelledby="strengths-title">
+        <div class="l-container c-stack">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">STRENGTHS</p>
+            <h2 id="strengths-title" class="c-heading__title">サービスの強み</h2>
+            <p class="c-heading__lead">
+              なぜ選ばれるのか、他社と比べてどこに価値があるのかを整理する枠です。
+            </p>
+          </header>
+
+          <div class="c-points c-points--no-media u-measure-980">
+            <div class="c-points__list">
+              <article class="c-points__item">
+                <p class="c-points__num">01</p>
+                <div class="c-points__body">
+                  <h3 class="c-points__title">課題整理から入れる</h3>
+                  <p class="c-points__text">要件定義や課題整理に強い場合の訴求に向いています。</p>
+                </div>
+              </article>
+
+              <article class="c-points__item">
+                <p class="c-points__num">02</p>
+                <div class="c-points__body">
+                  <h3 class="c-points__title">実行まで伴走できる</h3>
+                  <p class="c-points__text">
+                    提案だけでなく制作や運用まで対応できる強みを載せます。
+                  </p>
+                </div>
+              </article>
+
+              <article class="c-points__item">
+                <p class="c-points__num">03</p>
+                <div class="c-points__body">
+                  <h3 class="c-points__title">成果に応じて改善できる</h3>
+                  <p class="c-points__text">改善提案や継続支援の姿勢を伝えるための説明枠です。</p>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="flow-section l-section l-section--bg-soft" aria-labelledby="flow-title">
+        <div class="l-container c-stack">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">FLOW</p>
+            <h2 id="flow-title" class="c-heading__title">導入の流れ</h2>
+            <p class="c-heading__lead">
+              相談から納品、運用までの流れを見せると、案件開始前の不安を減らしやすくなります。
+            </p>
+          </header>
+
+          <ol class="flow-list flow-list--arrow" aria-label="導入の流れ">
+            <li class="flow-list__item u-reveal u-reveal-up js-reveal">
+              <span class="flow-list__num">01</span>
+              <div class="flow-list__body">
+                <h3 class="flow-list__title">
+                  <span class="flow-list__title-text">ヒアリング</span>
+                </h3>
+                <p class="flow-list__text">要件、課題、優先順位を確認します。</p>
+              </div>
+            </li>
+
+            <li class="flow-list__item u-reveal u-reveal-up js-reveal">
+              <span class="flow-list__num">02</span>
+              <div class="flow-list__body">
+                <h3 class="flow-list__title">
+                  <span class="flow-list__title-text">提案</span>
+                </h3>
+                <p class="flow-list__text">進め方、内容、概算、体制などを整理して提示します。</p>
+              </div>
+            </li>
+
+            <li class="flow-list__item u-reveal u-reveal-up js-reveal">
+              <span class="flow-list__num">03</span>
+              <div class="flow-list__body">
+                <h3 class="flow-list__title">
+                  <span class="flow-list__title-text">制作・実行</span>
+                </h3>
+                <p class="flow-list__text">決定内容に沿って制作や実作業を進行します。</p>
+              </div>
+            </li>
+
+            <li class="flow-list__item u-reveal u-reveal-up js-reveal">
+              <span class="flow-list__num">04</span>
+              <div class="flow-list__body">
+                <h3 class="flow-list__title">
+                  <span class="flow-list__title-text">納品・運用</span>
+                </h3>
+                <p class="flow-list__text">
+                  公開後や導入後の運用支援がある場合はここに記載します。
+                </p>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="cta-section l-section l-section--bg-warm" aria-labelledby="cta-title">
+        <div class="l-container c-stack c-stack--cta">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">CONTACT</p>
+            <h2 id="cta-title" class="c-heading__title">相談につなげる</h2>
+            <p class="c-heading__lead">
+              サービス内容を読んだ後に、そのまま問い合わせや見積相談へ進める導線です。
+            </p>
+          </header>
+
+          <div class="u-flex u-flex-sp-col u-gap-16 u-measure-980">
+            <a href="./contact.html" class="c-button c-button--cta">相談する</a>
+            <a href="./about.html" class="c-button c-button--outline-secondary">会社情報を見る</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer site-footer--standard" aria-labelledby="footer-title">
+      <div class="l-container c-stack">
+        <h2 id="footer-title" class="u-hidden">フッター</h2>
+
+        <div class="footer__top">
+          <div class="footer__brand c-stack c-stack--gap-16">
+            <p class="footer__title">{{PROJECT}}</p>
+            <p class="footer__desc">
+              サービス紹介ページの最小構成を用意したスターターテンプレです。
+            </p>
+            <p class="footer__meta">Generated from project-generator / {{DATE}}</p>
+          </div>
+
+          <div class="footer__cta">
+            <div class="footer__info">
+              <p class="footer__info-title">Quick Links</p>
+              <p class="footer__info-link"><a href="./contact.html">お問い合わせ</a></p>
+            </div>
+          </div>
+        </div>
+
+        <nav class="footer__nav" aria-label="フッターナビゲーション">
+          <ul class="footer__links">
+            <li><a href="./index.html">トップ</a></li>
+            <li><a href="./about.html">会社案内</a></li>
+            <li><a href="./service.html">サービス</a></li>
+            <li><a href="./contact.html">お問い合わせ</a></li>
+          </ul>
+        </nav>
+
+        <p class="footer__copy"><small>© {{PROJECT}}</small></p>
+      </div>
+    </footer>
+
+    <script type="module" src="./dist/js/core/app.js"></script>
+  </body>
+</html>

@@ -1,31 +1,151 @@
-from pathlib import Path
-from datetime import datetime
-import shutil
+from __future__ import annotations
+
+import argparse
 import re
+import shutil
+import sys
+from datetime import date
+from pathlib import Path
 
 
-# -----------------------------
-# 文字列置換（HTML用）
-# -----------------------------
-def replace_in_file(path: Path, replacements: dict[str, str]) -> None:
-    text = path.read_text(encoding="utf-8")
-    for old, new in replacements.items():
-        text = text.replace(old, new)
+CSS_HREF = "./dist/css/main.css"
+APP_JS_SRC = "./dist/js/core/app.js"
+TEMPLATE_ORDER = ("website", "lp", "shop")
+PAGE_TITLES = {
+    "website": {
+        "index": "トップページ",
+        "about": "会社案内",
+        "service": "サービス",
+        "contact": "お問い合わせ",
+    },
+    "lp": {
+        "index": "ランディングページ",
+    },
+    "shop": {
+        "index": "ショップトップ",
+        "products": "商品一覧",
+        "about": "店舗紹介",
+        "contact": "お問い合わせ",
+    },
+}
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="project-generator: 仕事用スターターテンプレを outputs/ に生成します。"
+    )
+    parser.add_argument(
+        "-t",
+        "--template",
+        choices=TEMPLATE_ORDER,
+        help="生成するテンプレ種別を指定します。",
+    )
+    parser.add_argument(
+        "-p",
+        "--project",
+        help="案件名を指定します。未指定時は対話入力します。",
+    )
+    parser.add_argument(
+        "-r",
+        "--refresh-dist",
+        action="store_true",
+        help="既存案件の dist/css と dist/js のみを再コピーします。",
+    )
+    parser.add_argument(
+        "-f",
+        "--force",
+        action="store_true",
+        help="同名の出力先がある場合に上書きします。",
+    )
+    return parser.parse_args()
+
+
+def prompt_template() -> str:
+    while True:
+        print("\nテンプレを選択してください。")
+        for index, name in enumerate(TEMPLATE_ORDER, start=1):
+            print(f"{index}: {name}")
+
+        choice = input("> ").strip()
+        if choice.isdigit():
+            selected = int(choice) - 1
+            if 0 <= selected < len(TEMPLATE_ORDER):
+                return TEMPLATE_ORDER[selected]
+
+        if choice in TEMPLATE_ORDER:
+            return choice
+
+        print("`website` `lp` `shop` のいずれかを選択してください。")
+
+
+def prompt_project_name() -> str:
+    while True:
+        project = input("\n案件名を入力してください。\n> ").strip()
+        if project:
+            return project
+        print("案件名は空欄にできません。")
+
+
+def sanitize_project_name(project_name: str) -> str:
+    normalized = re.sub(r'[<>:"/\\|?*]+', "-", project_name.strip())
+    normalized = re.sub(r"\s+", "-", normalized)
+    normalized = re.sub(r"-{2,}", "-", normalized)
+    normalized = normalized.strip(" .-_")
+    if not normalized:
+        raise ValueError("案件名から有効なフォルダ名を作成できませんでした。")
+    return normalized
+
+
+def confirm_overwrite(output_dir: Path) -> bool:
+    while True:
+        answer = (
+            input(f"\n{output_dir.name} はすでに存在します。上書きしますか？ (y/n)\n> ")
+            .strip()
+            .lower()
+        )
+        if answer in {"y", "yes"}:
+            return True
+        if answer in {"n", "no"}:
+            return False
+
+
+def read_text(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
+
+
+def write_text(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
-# -----------------------------
-# body クラス自動挿入
-# t-<template> + p-<page>
-# -----------------------------
-def inject_body_classes(html_path: Path, template: str) -> None:
-    page = html_path.stem
-    page_class = "p-home" if page == "index" else f"p-{page}"
-    template_class = f"t-{template}"
-    add_classes = f"{template_class} {page_class}"
+def page_title_for(template_name: str, html_path: Path) -> str:
+    page_key = html_path.stem
+    return PAGE_TITLES.get(template_name, {}).get(page_key, page_key.title())
 
-    text = html_path.read_text(encoding="utf-8")
 
+def replace_placeholders(
+    html_path: Path,
+    *,
+    project_name: str,
+    generated_date: str,
+    page_title: str,
+) -> None:
+    replacements = {
+        "{{PROJECT}}": project_name,
+        "{{DATE}}": generated_date,
+        "{{PAGE_TITLE}}": page_title,
+    }
+
+    text = read_text(html_path)
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    write_text(html_path, text)
+
+
+def inject_body_classes(html_path: Path, template_name: str) -> None:
+    page_class = "p-home" if html_path.stem == "index" else f"p-{html_path.stem}"
+    required_classes = [f"t-{template_name}", page_class]
+
+    text = read_text(html_path)
     match = re.search(r"<body\b[^>]*>", text, flags=re.IGNORECASE)
     if not match:
         return
@@ -34,255 +154,230 @@ def inject_body_classes(html_path: Path, template: str) -> None:
     class_match = re.search(r'class\s*=\s*"([^"]*)"', body_tag, flags=re.IGNORECASE)
 
     if class_match:
-        existing = class_match.group(1).strip()
-        existing_set = set(existing.split())
-
-        for c in add_classes.split():
-            if c not in existing_set:
-                existing += (" " if existing else "") + c
-
+        classes = class_match.group(1).split()
+        for name in required_classes:
+            if name not in classes:
+                classes.append(name)
         new_body_tag = re.sub(
             r'class\s*=\s*"([^"]*)"',
-            f'class="{existing}"',
+            f'class="{" ".join(classes)}"',
             body_tag,
+            count=1,
             flags=re.IGNORECASE,
         )
     else:
-        new_body_tag = body_tag[:-1] + f' class="{add_classes}">'
+        new_body_tag = body_tag[:-1] + f' class="{" ".join(required_classes)}">'
 
-    text = text.replace(body_tag, new_body_tag, 1)
-    html_path.write_text(text, encoding="utf-8")
-
-
-# =============================
-# generator 側の出力規約（※新規生成時のみ使用）
-# =============================
-CSS_HREF = "./dist/css/main.css"
+    write_text(html_path, text.replace(body_tag, new_body_tag, 1))
 
 
 def normalize_css_link(html_path: Path) -> None:
-    text = html_path.read_text(encoding="utf-8")
-
-    def repl(m: re.Match) -> str:
-        tag = m.group(0)
-        hm = re.search(r'href\s*=\s*"([^"]*)"', tag, flags=re.I)
-        if not hm:
-            return tag
-        href = hm.group(1)
-        # main.css だけ正規化（theme 等は触らない）
-        if "main.css" not in href.lower():
-            return tag
-        return re.sub(
-            r'href\s*=\s*"[^"]*"',
-            f'href="{CSS_HREF}"',
-            tag,
-            flags=re.I,
-        )
-
-    text2 = re.sub(
-        r"<link\b[^>]*rel\s*=\s*['\"]stylesheet['\"][^>]*>",
-        repl,
-        text,
-        flags=re.I,
+    text = read_text(html_path)
+    main_css_pattern = re.compile(
+        r"<link\b(?=[^>]*rel\s*=\s*['\"]stylesheet['\"])(?=[^>]*href\s*=\s*['\"][^'\"]*main\.css[^'\"]*['\"])[^>]*>",
+        flags=re.IGNORECASE,
     )
 
-    if text2 != text:
-        html_path.write_text(text2, encoding="utf-8")
+    if main_css_pattern.search(text):
+        updated = main_css_pattern.sub(
+            f'<link rel="stylesheet" href="{CSS_HREF}" />',
+            text,
+            count=1,
+        )
+        write_text(html_path, updated)
+        return
+
+    if "</head>" in text:
+        updated = text.replace(
+            "</head>",
+            f'  <link rel="stylesheet" href="{CSS_HREF}" />\n</head>',
+            1,
+        )
+        write_text(html_path, updated)
 
 
 def normalize_main_tag(html_path: Path) -> None:
-    text = html_path.read_text(encoding="utf-8")
-
-    m = re.search(r"<main\b[^>]*>", text, flags=re.I)
-    if not m:
+    text = read_text(html_path)
+    match = re.search(r"<main\b[^>]*>", text, flags=re.IGNORECASE)
+    if not match:
         return
 
-    main_tag = m.group(0)
-    cm = re.search(r'class\s*=\s*"([^"]*)"', main_tag, flags=re.I)
+    main_tag = match.group(0)
+    class_match = re.search(r'class\s*=\s*"([^"]*)"', main_tag, flags=re.IGNORECASE)
 
-    if cm:
-        classes = [c for c in cm.group(1).split() if c != "container"]
+    if class_match:
+        classes = class_match.group(1).split()
         if "main" not in classes:
             classes.insert(0, "main")
-
         new_main_tag = re.sub(
             r'class\s*=\s*"([^"]*)"',
             f'class="{" ".join(classes)}"',
             main_tag,
-            flags=re.I,
+            count=1,
+            flags=re.IGNORECASE,
         )
     else:
         new_main_tag = main_tag[:-1] + ' class="main">'
 
-    text2 = text.replace(main_tag, new_main_tag, 1)
-    if text2 != text:
-        html_path.write_text(text2, encoding="utf-8")
+    write_text(html_path, text.replace(main_tag, new_main_tag, 1))
+
+
+def normalize_app_script(html_path: Path) -> None:
+    text = read_text(html_path)
+    script_pattern = re.compile(
+        r"<script\b(?=[^>]*src\s*=\s*['\"][^'\"]*app\.js[^'\"]*['\"])[^>]*></script>",
+        flags=re.IGNORECASE,
+    )
+
+    if script_pattern.search(text):
+        updated = script_pattern.sub(
+            f'<script type="module" src="{APP_JS_SRC}"></script>',
+            text,
+            count=1,
+        )
+        write_text(html_path, updated)
+        return
+
+    if "</body>" in text:
+        updated = text.replace(
+            "</body>",
+            f'  <script type="module" src="{APP_JS_SRC}"></script>\n</body>',
+            1,
+        )
+        write_text(html_path, updated)
 
 
 def normalize_html(html_path: Path) -> None:
     normalize_css_link(html_path)
     normalize_main_tag(html_path)
+    normalize_app_script(html_path)
 
 
-# -----------------------------
-# exiga の CSS をコピー（dist/css を同期）
-# -----------------------------
-def copy_exiga_dist_to_output(output_dir: Path) -> None:
-    base_dir = Path(__file__).parent
-    exiga_dist_dir = base_dir.parent / "sass-starter-exiga" / "dist"
-
-    if not exiga_dist_dir.exists():
-        print("exiga の dist dir が見つかりません:", exiga_dist_dir)
-        return
-
-    # css / js を同期
-    for sub in ("css", "js"):
-        src = exiga_dist_dir / sub
-        if not src.exists():
-            print(f"exiga の dist/{sub} が見つかりません:", src)
-            continue
-
-        dst = output_dir / "dist" / sub
-        dst.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(src, dst, dirs_exist_ok=True)
+def ensure_output_structure(output_dir: Path) -> None:
+    (output_dir / "assets" / "img").mkdir(parents=True, exist_ok=True)
+    (output_dir / "dist").mkdir(parents=True, exist_ok=True)
 
 
-# -----------------------------
-# 既存の生成フォルダを選択（同期用）
-# -----------------------------
-def ask_existing_output_dir(base_dir: Path) -> Path | None:
-    ignore = {"templates", "sass-starter-exiga", "__pycache__"}
-    candidates = sorted(
-        [
-            p
-            for p in base_dir.iterdir()
-            if p.is_dir() and "_" in p.name and p.name not in ignore
-        ],
-        key=lambda p: p.stat().st_mtime,
-        reverse=True,
-    )
+def copy_exiga_dist(base_dir: Path, output_dir: Path) -> None:
+    dist_root = base_dir.parent / "sass-starter-exiga" / "dist"
+    if not dist_root.exists():
+        raise FileNotFoundError(
+            f"`sass-starter-exiga/dist` が見つかりません: {dist_root}"
+        )
 
-    if not candidates:
-        print("既存の生成フォルダが見つかりません。")
-        return None
+    for directory_name in ("css", "js"):
+        source = dist_root / directory_name
+        if not source.exists():
+            raise FileNotFoundError(
+                f"`dist/{directory_name}` が見つかりません: {source}"
+            )
 
-    print("\n同期するフォルダを選んでください（CSSのみ）：")
-    for i, p in enumerate(candidates, start=1):
-        print(f"{i}: {p.name}")
-
-    choice = input("> ").strip()
-    if not choice.isdigit():
-        return None
-
-    idx = int(choice) - 1
-    return candidates[idx] if 0 <= idx < len(candidates) else None
+        destination = output_dir / "dist" / directory_name
+        shutil.copytree(source, destination, dirs_exist_ok=True)
 
 
-# -----------------------------
-# テンプレ選択
-# -----------------------------
-def ask_template() -> str:
-    base_dir = Path(__file__).parent
-    templates_dir = base_dir / "templates"
+def refresh_dist(*, base_dir: Path, project_name: str) -> Path:
+    outputs_dir = base_dir / "outputs"
+    output_dir = outputs_dir / sanitize_project_name(project_name)
 
-    templates = sorted(
-        p.name
-        for p in templates_dir.iterdir()
-        if p.is_dir() and not p.name.startswith(".")
-    )
+    if not output_dir.exists() or not output_dir.is_dir():
+        raise FileNotFoundError(f"対象案件フォルダが見つかりません: {output_dir}")
 
-    if not templates:
-        raise SystemExit("テンプレが見つかりません")
-
-    while True:
-        print("\nテンプレを選択してください：")
-        for i, name in enumerate(templates, start=1):
-            print(f"{i}: {name}")
-
-        choice = input("> ").strip()
-        if choice.isdigit():
-            index = int(choice) - 1
-            if 0 <= index < len(templates):
-                return templates[index]
-
-
-# -----------------------------
-# プロジェクト生成
-# -----------------------------
-def make_project(
-    project: str,
-    template: str,
-    tel: str = "",
-    tel_display: str = "",
-) -> Path | None:
-    today = datetime.now().strftime("%Y%m%d")
-
-    base_dir = Path(__file__).parent
-    template_dir = base_dir / "templates" / template
-    output_dir = base_dir / f"{project}_{template}_{today}"
-
-    if not template_dir.exists():
-        print("テンプレが見つかりません:", template_dir)
-        return None
-
-    if output_dir.exists():
-        answer = input("すでに存在します。上書きしますか？(y/n)：").lower()
-        if answer != "y":
-            return None
-        shutil.rmtree(output_dir)
-
-    shutil.copytree(template_dir, output_dir)
-
-    replacements = {
-        "{{PROJECT}}": project,
-        "{{DATE}}": today,
-        "{{TEL}}": tel,
-        "{{TEL_DISPLAY}}": tel_display,
-    }
-
-    for html_path in output_dir.rglob("*.html"):
-        replace_in_file(html_path, replacements)
-        inject_body_classes(html_path, template)
-        normalize_html(html_path)
-
-    copy_exiga_dist_to_output(output_dir)
-    print("作成完了：", output_dir)
+    ensure_output_structure(output_dir)
+    copy_exiga_dist(base_dir, output_dir)
     return output_dir
 
 
-# -----------------------------
-# エントリーポイント
-# -----------------------------
+def prepare_html_files(
+    output_dir: Path,
+    *,
+    template_name: str,
+    project_name: str,
+    generated_date: str,
+) -> None:
+    for html_path in sorted(output_dir.rglob("*.html")):
+        replace_placeholders(
+            html_path,
+            project_name=project_name,
+            generated_date=generated_date,
+            page_title=page_title_for(template_name, html_path),
+        )
+        inject_body_classes(html_path, template_name)
+        normalize_html(html_path)
+
+
+def create_project(
+    *,
+    base_dir: Path,
+    template_name: str,
+    project_name: str,
+    force: bool,
+) -> Path:
+    template_dir = base_dir / "templates" / template_name
+    if not template_dir.exists():
+        raise FileNotFoundError(f"テンプレが見つかりません: {template_dir}")
+
+    outputs_dir = base_dir / "outputs"
+    outputs_dir.mkdir(parents=True, exist_ok=True)
+
+    output_dir = outputs_dir / sanitize_project_name(project_name)
+    if output_dir.exists():
+        if not force and not confirm_overwrite(output_dir):
+            raise SystemExit("生成を中止しました。")
+        shutil.rmtree(output_dir)
+
+    shutil.copytree(template_dir, output_dir)
+    ensure_output_structure(output_dir)
+
+    generated_date = date.today().isoformat()
+    prepare_html_files(
+        output_dir,
+        template_name=template_name,
+        project_name=project_name,
+        generated_date=generated_date,
+    )
+    copy_exiga_dist(base_dir, output_dir)
+    return output_dir
+
+
 def main() -> None:
-    base_dir = Path(__file__).parent
+    args = parse_args()
+    base_dir = Path(__file__).resolve().parent
 
-    mode = input("モードを選択： 1=新規生成 / 2=CSS同期 > ").strip()
+    if args.refresh_dist:
+        if not args.project:
+            print("`--refresh-dist` を使う場合は `--project` を指定してください。")
+            raise SystemExit(1)
 
-    # -------------------------
-    # 2) CSS同期モード
-    # -------------------------
-    if mode == "2":
-        target = ask_existing_output_dir(base_dir)
-        if not target:
-            return
+        try:
+            output_dir = refresh_dist(base_dir=base_dir, project_name=args.project)
+        except (FileNotFoundError, ValueError) as error:
+            print(error)
+            raise SystemExit(1) from error
 
-        copy_exiga_dist_to_output(target)
-        print("CSS同期完了：", target)
+        print(f"\ndist 更新完了: {output_dir}")
         return
 
-    # -------------------------
-    # 1) 新規生成モード
-    # -------------------------
-    project = input("案件名を入力してください：").strip()
-    if not project:
-        return
+    template_name = args.template or prompt_template()
+    project_name = args.project or prompt_project_name()
 
-    template = ask_template()
-    tel = input("電話番号（ハイフンなし）：").strip()
-    tel_display = input("表示用電話番号：").strip()
+    try:
+        output_dir = create_project(
+            base_dir=base_dir,
+            template_name=template_name,
+            project_name=project_name,
+            force=args.force,
+        )
+    except (FileNotFoundError, ValueError) as error:
+        print(error)
+        raise SystemExit(1) from error
 
-    make_project(project, template, tel, tel_display)
+    print(f"\n生成完了: {output_dir}")
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n処理を中断しました。")
+        sys.exit(1)

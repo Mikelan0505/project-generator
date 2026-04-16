@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{PAGE_TITLE}} | {{PROJECT}}</title>
+    <meta
+      name="description"
+      content="{{PROJECT}} の商品一覧スターターです。カテゴリ別の商品紹介と価格表示を整理しやすい最小構成です。"
+    />
+    <meta name="build-date" content="{{DATE}}" />
+    <link rel="stylesheet" href="./dist/css/main.css" />
+  </head>
+  <body>
+    <a href="#main" class="skip-link">本文へスキップ</a>
+
+    <header
+      class="site-header site-header--solid is-sticky site-header--drawer site-header--scroll-light"
+      id="top"
+    >
+      <div class="site-header__inner l-container">
+        <p class="site-title">
+          <a href="./index.html" class="site-title__link">{{PROJECT}}</a>
+        </p>
+
+        <nav class="site-nav js-site-nav" id="site-nav" aria-label="グローバルナビ" hidden>
+          <ul>
+            <li><a href="./index.html">トップ</a></li>
+            <li><a href="./products.html" class="is-current" aria-current="page">商品一覧</a></li>
+            <li><a href="./about.html">店舗案内</a></li>
+            <li><a href="./contact.html" class="site-nav__cta">お問い合わせ</a></li>
+          </ul>
+        </nav>
+
+        <button
+          class="site-nav-toggle js-nav-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="site-nav"
+          aria-label="メニューを開く"
+        >
+          <span class="site-nav-toggle__icon" aria-hidden="true"></span>
+        </button>
+      </div>
+
+      <div class="site-nav-overlay js-nav-overlay" hidden></div>
+    </header>
+
+    <main class="main" id="main">
+      <section class="page-hero-section l-section" aria-labelledby="page-hero-title">
+        <div class="l-container c-stack">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">PRODUCTS</p>
+            <h1 id="page-hero-title" class="c-heading__title">商品一覧ページの土台</h1>
+            <p class="c-heading__lead">
+              カテゴリごとに商品を並べやすく、価格や説明文を更新しやすい店舗向けの商品紹介ページです。
+            </p>
+          </header>
+        </div>
+      </section>
+
+      <section
+        class="category-nav-section l-section l-section--bg-soft"
+        aria-labelledby="category-nav-title"
+      >
+        <div class="l-container c-stack">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">CATEGORY NAV</p>
+            <h2 id="category-nav-title" class="c-heading__title">カテゴリから探す</h2>
+            <p class="c-heading__lead">
+              商品数が多い前提で、カテゴリ単位に移動しやすいナビゲーションを先頭に置いています。
+            </p>
+          </header>
+
+          <div class="u-flex u-flex-wrap u-gap-16 u-measure-980">
+            <a href="#category-standard" class="c-button">定番商品</a>
+            <a href="#category-seasonal" class="c-button">季節限定</a>
+            <a href="#category-gift" class="c-button">ギフト向け</a>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="category-standard"
+        class="product-grid-section l-section"
+        aria-labelledby="category-standard-title"
+      >
+        <div class="l-container c-stack">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">STANDARD</p>
+            <h2 id="category-standard-title" class="c-heading__title">定番商品</h2>
+            <p class="c-heading__lead">
+              日常使い、まず試してほしい主力商品、通年販売アイテムの紹介に向くブロックです。
+            </p>
+          </header>
+
+          <div class="l-grid l-grid--cards-4 l-grid--cards-uniform">
+            <article class="c-card c-card--md">
+              <div class="c-card__body">
+                <p class="text-sub">定番 / 人気商品</p>
+                <h3 class="c-card__title">スタンダードブレンド</h3>
+                <p class="c-card__text">初めての方にも案内しやすい、店の定番商品です。</p>
+                <p class="text-price"><span class="text-price__prefix">税込</span> 1,080円</p>
+              </div>
+            </article>
+
+            <article class="c-card c-card--md">
+              <div class="c-card__body">
+                <p class="text-sub">定番 / ロングセラー</p>
+                <h3 class="c-card__title">焼き菓子アソート</h3>
+                <p class="c-card__text">日常使いにも手土産にも向く、差し替えしやすい代表枠です。</p>
+                <p class="text-price"><span class="text-price__prefix">税込</span> 1,620円</p>
+              </div>
+            </article>
+
+            <article class="c-card c-card--md">
+              <div class="c-card__body">
+                <p class="text-sub">定番 / 日常向け</p>
+                <h3 class="c-card__title">オリジナル雑貨</h3>
+                <p class="c-card__text">小さなギフトやついで買いを想定した商品カードです。</p>
+                <p class="text-price"><span class="text-price__prefix">税込</span> 880円</p>
+              </div>
+            </article>
+
+            <article class="c-card c-card--md">
+              <div class="c-card__body">
+                <p class="text-sub">定番 / 売れ筋</p>
+                <h3 class="c-card__title">定番クッキー缶</h3>
+                <p class="c-card__text">
+                  店の顔になりやすい、通年で案内しやすい主力商品の想定です。
+                </p>
+                <p class="text-price"><span class="text-price__prefix">税込</span> 2,480円</p>
+              </div>
+            </article>
+
+            <article class="c-card c-card--md">
+              <div class="c-card__body">
+                <p class="text-sub">定番 / 毎日使い</p>
+                <h3 class="c-card__title">デイリーパック</h3>
+                <p class="c-card__text">
+                  まとめ買いや日常利用に向く、価格帯を見せやすい商品枠です。
+                </p>
+                <p class="text-price"><span class="text-price__prefix">税込</span> 756円</p>
+              </div>
+            </article>
+
+            <article class="c-card c-card--md">
+              <div class="c-card__body">
+                <p class="text-sub">定番 / 店頭人気</p>
+                <h3 class="c-card__title">店主おすすめセット</h3>
+                <p class="c-card__text">初回来店者に紹介しやすい、組み合わせ商品の想定です。</p>
+                <p class="text-price"><span class="text-price__prefix">税込</span> 1,980円</p>
+              </div>
+            </article>
+
+            <article class="c-card c-card--md">
+              <div class="c-card__body">
+                <p class="text-sub">定番 / 手土産向け</p>
+                <h3 class="c-card__title">ミニギフトボックス</h3>
+                <p class="c-card__text">ちょっとした贈り物やお礼需要に対応しやすい定番商品です。</p>
+                <p class="text-price"><span class="text-price__prefix">税込</span> 1,296円</p>
+              </div>
+            </article>
+
+            <article class="c-card c-card--md">
+              <div class="c-card__body">
+                <p class="text-sub">定番 / ベーシック</p>
+                <h3 class="c-card__title">シンプルセレクション</h3>
+                <p class="c-card__text">
+                  素材や使いやすさをまっすぐ伝えたい商品の説明に向いています。
+                </p>
+                <p class="text-price"><span class="text-price__prefix">税込</span> 1,430円</p>
+              </div>
+            </article>
+
+            <article class="c-card c-card--md">
+              <div class="c-card__body">
+                <p class="text-sub">定番 / リピート人気</p>
+                <h3 class="c-card__title">リピート定番商品</h3>
+                <p class="c-card__text">
+                  継続購入や来店理由につながりやすい商品を置くための枠です。
+                </p>
+                <p class="text-price"><span class="text-price__prefix">税込</span> 972円</p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="category-seasonal"
+        class="product-grid-section l-section l-section--bg-soft"
+        aria-labelledby="category-seasonal-title"
+      >
+        <div class="l-container c-stack">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">SEASONAL</p>
+            <h2 id="category-seasonal-title" class="c-heading__title">季節限定</h2>
+            <p class="c-heading__lead">
+              イベントや季節要素の強い商品をまとめることで、更新導線を分けやすくしています。
+            </p>
+          </header>
+
+          <div class="l-grid l-grid--cards-4 l-grid--cards-uniform">
+            <article class="c-card c-card--md">
+              <div class="c-card__body">
+                <p class="text-sub">季節限定 / 春</p>
+                <h3 class="c-card__title">季節の詰め合わせ</h3>
+                <p class="c-card__text">
+                  イベントや催事に合わせて内容を差し替えやすい限定商品です。
+                </p>
+                <p class="text-price"><span class="text-price__prefix">税込</span> 2,160円</p>
+              </div>
+            </article>
+
+            <article class="c-card c-card--md">
+              <div class="c-card__body">
+                <p class="text-sub">季節限定 / 数量限定</p>
+                <h3 class="c-card__title">限定ロースト</h3>
+                <p class="c-card__text">
+                  数量に限りのある商品や、仕入れ状況で変わる商品紹介に向きます。
+                </p>
+                <p class="text-price"><span class="text-price__prefix">税込</span> 1,350円</p>
+              </div>
+            </article>
+
+            <article class="c-card c-card--md">
+              <div class="c-card__body">
+                <p class="text-sub">季節限定 / ギフト対応</p>
+                <h3 class="c-card__title">季節ラッピング商品</h3>
+                <p class="c-card__text">母の日、年末年始、催事向けなど、時期訴求用のカードです。</p>
+                <p class="text-price"><span class="text-price__prefix">税込</span> 2,970円</p>
+              </div>
+            </article>
+
+            <article class="c-card c-card--md">
+              <div class="c-card__body">
+                <p class="text-sub">季節限定 / 夏</p>
+                <h3 class="c-card__title">季節の冷菓セット</h3>
+                <p class="c-card__text">
+                  夏向け、涼感訴求、限定素材などを打ち出したい商品の枠です。
+                </p>
+                <p class="text-price"><span class="text-price__prefix">税込</span> 1,890円</p>
+              </div>
+            </article>
+
+            <article class="c-card c-card--md">
+              <div class="c-card__body">
+                <p class="text-sub">季節限定 / 秋冬</p>
+                <h3 class="c-card__title">濃厚シーズンセレクト</h3>
+                <p class="c-card__text">
+                  秋冬の味わい、限定素材、濃いめの訴求を入れやすい商品枠です。
+                </p>
+                <p class="text-price"><span class="text-price__prefix">税込</span> 1,480円</p>
+              </div>
+            </article>
+
+            <article class="c-card c-card--md">
+              <div class="c-card__body">
+                <p class="text-sub">季節限定 / 催事向け</p>
+                <h3 class="c-card__title">イベント限定ボックス</h3>
+                <p class="c-card__text">催事、フェア、期間販売など短期訴求の商品紹介に使えます。</p>
+                <p class="text-price"><span class="text-price__prefix">税込</span> 3,240円</p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="category-gift"
+        class="product-grid-section l-section"
+        aria-labelledby="category-gift-title"
+      >
+        <div class="l-container c-stack">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">GIFT</p>
+            <h2 id="category-gift-title" class="c-heading__title">ギフト向け商品</h2>
+            <p class="c-heading__lead">
+              贈り物需要のある店舗向けに、価格帯や用途別に並べやすい紹介枠を用意しています。
+            </p>
+          </header>
+
+          <div class="l-grid l-grid--cards-4 l-grid--cards-uniform">
+            <article class="c-card c-card--md">
+              <div class="c-card__body">
+                <p class="text-sub">ギフト / 定番</p>
+                <h3 class="c-card__title">手土産セット</h3>
+                <p class="c-card__text">
+                  来店前の取り置き相談につなげやすい、売れ筋ギフトの想定です。
+                </p>
+                <p class="text-price"><span class="text-price__prefix">税込</span> 2,430円</p>
+              </div>
+            </article>
+
+            <article class="c-card c-card--md">
+              <div class="c-card__body">
+                <p class="text-sub">ギフト / 人気商品</p>
+                <h3 class="c-card__title">ラッピング対応商品</h3>
+                <p class="c-card__text">包装可否や発送可否の確認につながる商品紹介に使えます。</p>
+                <p class="text-price"><span class="text-price__prefix">税込</span> 3,300円</p>
+              </div>
+            </article>
+
+            <article class="c-card c-card--md">
+              <div class="c-card__body">
+                <p class="text-sub">ギフト / 価格帯別</p>
+                <h3 class="c-card__title">ちいさな贈り物</h3>
+                <p class="c-card__text">
+                  価格別のギフト提案や、プチギフト枠として扱いやすいカードです。
+                </p>
+                <p class="text-price"><span class="text-price__prefix">税込</span> 1,100円</p>
+              </div>
+            </article>
+
+            <article class="c-card c-card--md">
+              <div class="c-card__body">
+                <p class="text-sub">ギフト / フォーマル</p>
+                <h3 class="c-card__title">きちんと贈れる定番箱</h3>
+                <p class="c-card__text">
+                  お中元、お歳暮、お礼用途など、少しかしこまった贈答向けの枠です。
+                </p>
+                <p class="text-price"><span class="text-price__prefix">税込</span> 3,780円</p>
+              </div>
+            </article>
+
+            <article class="c-card c-card--md">
+              <div class="c-card__body">
+                <p class="text-sub">ギフト / カジュアル</p>
+                <h3 class="c-card__title">気軽な贈りものセット</h3>
+                <p class="c-card__text">
+                  友人向け、ちょっとしたお礼向けなど、日常ギフトの紹介に向いています。
+                </p>
+                <p class="text-price"><span class="text-price__prefix">税込</span> 1,650円</p>
+              </div>
+            </article>
+
+            <article class="c-card c-card--md">
+              <div class="c-card__body">
+                <p class="text-sub">ギフト / 季節提案</p>
+                <h3 class="c-card__title">季節の贈答ボックス</h3>
+                <p class="c-card__text">
+                  時期に合わせた包装や限定セットなど、季節提案用のギフト枠です。
+                </p>
+                <p class="text-price"><span class="text-price__prefix">税込</span> 2,860円</p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="guide-section l-section l-section--bg-soft" aria-labelledby="guide-title">
+        <div class="l-container c-stack">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">GUIDE</p>
+            <h2 id="guide-title" class="c-heading__title">商品案内の補足</h2>
+            <p class="c-heading__lead">
+              取り置き、ラッピング、在庫確認、賞味期限や配送対応など、商品一覧ページに置きやすい案内枠です。
+            </p>
+          </header>
+
+          <div class="c-points c-points--no-media u-measure-980">
+            <div class="c-points__list">
+              <article class="c-points__item">
+                <p class="c-points__num">01</p>
+                <div class="c-points__body">
+                  <h3 class="c-points__title">在庫は日々変動します</h3>
+                  <p class="c-points__text">
+                    数量限定商品や焼き上がり商品がある場合の案内に向いています。
+                  </p>
+                </div>
+              </article>
+
+              <article class="c-points__item">
+                <p class="c-points__num">02</p>
+                <div class="c-points__body">
+                  <h3 class="c-points__title">取り置き相談が可能です</h3>
+                  <p class="c-points__text">
+                    来店予定日に合わせた問い合わせ導線を自然につなげられます。
+                  </p>
+                </div>
+              </article>
+
+              <article class="c-points__item">
+                <p class="c-points__num">03</p>
+                <div class="c-points__body">
+                  <h3 class="c-points__title">ラッピングや用途相談も受付</h3>
+                  <p class="c-points__text">ギフト需要のある店舗向けに使いやすい補足文です。</p>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="cta-section l-section l-section--bg-warm" aria-labelledby="cta-title">
+        <div class="l-container c-stack c-stack--cta">
+          <header class="c-heading c-stack c-stack--gap-16 u-measure-980">
+            <p class="c-heading__eyebrow">CONTACT</p>
+            <h2 id="cta-title" class="c-heading__title">商品相談につなげる</h2>
+            <p class="c-heading__lead">
+              在庫確認、取り置き、来店前相談など、商品一覧ページを見た後の行動を受け止める導線です。
+            </p>
+          </header>
+
+          <div class="u-flex u-flex-sp-col u-gap-16 u-measure-980">
+            <a href="./contact.html" class="c-button c-button--cta">商品について問い合わせる</a>
+            <a href="./about.html" class="c-button c-button--outline-secondary">店舗情報を見る</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer site-footer--standard" aria-labelledby="footer-title">
+      <div class="l-container c-stack">
+        <h2 id="footer-title" class="u-hidden">フッター</h2>
+
+        <div class="footer__top">
+          <div class="footer__brand c-stack c-stack--gap-16">
+            <p class="footer__title">{{PROJECT}}</p>
+            <p class="footer__desc">商品紹介テンプレとしてカテゴリと価格を整理しやすい構成です。</p>
+            <p class="footer__meta">Generated from project-generator / {{DATE}}</p>
+          </div>
+
+          <div class="footer__cta">
+            <div class="footer__info">
+              <p class="footer__info-title">Quick Links</p>
+              <p class="footer__info-link"><a href="./contact.html">お問い合わせ</a></p>
+            </div>
+          </div>
+        </div>
+
+        <nav class="footer__nav" aria-label="フッターナビゲーション">
+          <ul class="footer__links">
+            <li><a href="./index.html">トップ</a></li>
+            <li><a href="./products.html">商品一覧</a></li>
+            <li><a href="./about.html">店舗案内</a></li>
+            <li><a href="./contact.html">お問い合わせ</a></li>
+          </ul>
+        </nav>
+
+        <p class="footer__copy"><small>© {{PROJECT}}</small></p>
+      </div>
+    </footer>
+
+    <script type="module" src="./dist/js/core/app.js"></script>
+  </body>
+</html>
