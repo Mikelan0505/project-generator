@@ -501,38 +501,3 @@ WordPress 管理画面で
 
 へ進めていく。
 ーマを有効化した
-
-### website
-
-- [ ] `front-page.php` を置いた
-- [ ] `page-about.php` を置いた
-- [ ] `page-service.php` を置いた
-- [ ] `page-contact.php` を置いた
-
-### shop
-
-- [ ] `front-page.php` を置いた
-- [ ] `page-products.php` を置いた
-- [ ] `page-about.php` を置いた
-- [ ] `page-contact.php` を置いた
-
-### lp
-
-- [ ] `front-page.php` を置いた
-
----
-
-## 現時点の結論
-
-`convert_to_wp.py` で生成した PHP 一式は、
-**そのまま WordPress テーマの最小土台として持ち込める段階** にある。
-
-ただし、これはまだ **読み込み系だけの最小テーマ化** であり、
-今後必要に応じて
-
-- `template-parts`
-- `wp_nav_menu()`
-- loop
-- カスタムフィールド
-
-へ進めていく。
