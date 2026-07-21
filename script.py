@@ -6,11 +6,16 @@ import shutil
 import sys
 from datetime import date
 from pathlib import Path
+from uuid import uuid4
 
 
 CSS_HREF = "./dist/css/main.css"
 APP_JS_SRC = "./dist/js/core/app.js"
 TEMPLATE_ORDER = ("website", "lp", "shop")
+REQUIRED_DIST_FILES = (
+    Path("css/main.css"),
+    Path("js/core/app.js"),
+)
 PAGE_TITLES = {
     "website": {
         "index": "トップページ",
@@ -258,22 +263,63 @@ def ensure_output_structure(output_dir: Path) -> None:
     (output_dir / "dist").mkdir(parents=True, exist_ok=True)
 
 
-def copy_exiga_dist(base_dir: Path, output_dir: Path) -> None:
+def resolve_exiga_dist(base_dir: Path) -> Path:
     dist_root = base_dir.parent / "sass-starter-exiga" / "dist"
-    if not dist_root.exists():
+    if not dist_root.exists() or not dist_root.is_dir():
         raise FileNotFoundError(
             f"`sass-starter-exiga/dist` が見つかりません: {dist_root}"
         )
 
+    for relative_path in REQUIRED_DIST_FILES:
+        source = dist_root / relative_path
+        if not source.exists() or not source.is_file():
+            raise FileNotFoundError(
+                f"必須distファイルが見つかりません: {source}"
+            )
+
+    return dist_root
+
+
+def copy_exiga_dist(dist_root: Path, destination_dist_dir: Path) -> None:
+    destination_dist_dir.mkdir(parents=True, exist_ok=True)
+
     for directory_name in ("css", "js"):
         source = dist_root / directory_name
-        if not source.exists():
+        if not source.exists() or not source.is_dir():
             raise FileNotFoundError(
                 f"`dist/{directory_name}` が見つかりません: {source}"
             )
 
-        destination = output_dir / "dist" / directory_name
-        shutil.copytree(source, destination, dirs_exist_ok=True)
+        destination = destination_dist_dir / directory_name
+        shutil.copytree(source, destination)
+
+
+def replace_directory_transactionally(
+    staging_dir: Path,
+    destination_dir: Path,
+) -> None:
+    if destination_dir.exists() and not destination_dir.is_dir():
+        raise FileExistsError(
+            f"置換対象がディレクトリではありません: {destination_dir}"
+        )
+
+    backup_dir = destination_dir.parent / (
+        f".{destination_dir.name}.backup-{uuid4().hex}"
+    )
+    had_destination = destination_dir.exists()
+
+    if had_destination:
+        destination_dir.rename(backup_dir)
+
+    try:
+        staging_dir.rename(destination_dir)
+    except Exception:
+        if had_destination and backup_dir.exists() and not destination_dir.exists():
+            backup_dir.rename(destination_dir)
+        raise
+    else:
+        if backup_dir.exists():
+            shutil.rmtree(backup_dir, ignore_errors=True)
 
 
 def refresh_dist(*, base_dir: Path, project_name: str) -> Path:
@@ -283,8 +329,19 @@ def refresh_dist(*, base_dir: Path, project_name: str) -> Path:
     if not output_dir.exists() or not output_dir.is_dir():
         raise FileNotFoundError(f"対象案件フォルダが見つかりません: {output_dir}")
 
-    ensure_output_structure(output_dir)
-    copy_exiga_dist(base_dir, output_dir)
+    dist_root = resolve_exiga_dist(base_dir)
+    staging_dir = output_dir / f".dist.tmp-{uuid4().hex}"
+
+    try:
+        copy_exiga_dist(dist_root, staging_dir)
+        replace_directory_transactionally(
+            staging_dir,
+            output_dir / "dist",
+        )
+    finally:
+        if staging_dir.exists():
+            shutil.rmtree(staging_dir, ignore_errors=True)
+
     return output_dir
 
 
@@ -314,29 +371,41 @@ def create_project(
     force: bool,
 ) -> Path:
     template_dir = base_dir / "templates" / template_name
-    if not template_dir.exists():
+    if not template_dir.exists() or not template_dir.is_dir():
         raise FileNotFoundError(f"テンプレが見つかりません: {template_dir}")
 
+    dist_root = resolve_exiga_dist(base_dir)
     outputs_dir = base_dir / "outputs"
     outputs_dir.mkdir(parents=True, exist_ok=True)
 
     output_dir = outputs_dir / sanitize_project_name(project_name)
-    if output_dir.exists():
-        if not force and not confirm_overwrite(output_dir):
-            raise SystemExit("生成を中止しました。")
-        shutil.rmtree(output_dir)
+    if output_dir.exists() and not output_dir.is_dir():
+        raise FileExistsError(
+            f"同名の出力先がディレクトリではありません: {output_dir}"
+        )
 
-    shutil.copytree(template_dir, output_dir)
-    ensure_output_structure(output_dir)
+    if output_dir.exists() and not force and not confirm_overwrite(output_dir):
+        raise SystemExit("生成を中止しました。")
 
-    generated_date = date.today().isoformat()
-    prepare_html_files(
-        output_dir,
-        template_name=template_name,
-        project_name=project_name,
-        generated_date=generated_date,
-    )
-    copy_exiga_dist(base_dir, output_dir)
+    staging_dir = outputs_dir / f".{output_dir.name}.tmp-{uuid4().hex}"
+
+    try:
+        shutil.copytree(template_dir, staging_dir)
+        ensure_output_structure(staging_dir)
+
+        generated_date = date.today().isoformat()
+        prepare_html_files(
+            staging_dir,
+            template_name=template_name,
+            project_name=project_name,
+            generated_date=generated_date,
+        )
+        copy_exiga_dist(dist_root, staging_dir / "dist")
+        replace_directory_transactionally(staging_dir, output_dir)
+    finally:
+        if staging_dir.exists():
+            shutil.rmtree(staging_dir, ignore_errors=True)
+
     return output_dir
 
 
@@ -351,7 +420,7 @@ def main() -> None:
 
         try:
             output_dir = refresh_dist(base_dir=base_dir, project_name=args.project)
-        except (FileNotFoundError, ValueError) as error:
+        except (OSError, ValueError) as error:
             print(error)
             raise SystemExit(1) from error
 
@@ -368,7 +437,7 @@ def main() -> None:
             project_name=project_name,
             force=args.force,
         )
-    except (FileNotFoundError, ValueError) as error:
+    except (OSError, ValueError) as error:
         print(error)
         raise SystemExit(1) from error
 
