@@ -10,11 +10,19 @@ from textwrap import dedent
 from uuid import uuid4
 
 import filesystem_safety
-from generation_manifest import sha256_file, utc_timestamp
+from generation_manifest import (
+    GenerationManifestError,
+    MANIFEST_FILENAME,
+    read_generation_manifest,
+    sha256_file,
+    utc_timestamp,
+)
 
 from filesystem_safety import (
     DirectoryTransactionRecoveryError,
-    assert_no_directory_transaction_artifacts,
+    WORDPRESS_DIRECTORY_TRANSACTION_LABEL,
+    assert_no_project_transaction_artifacts,
+    remove_path_quietly,
     rename_with_retry,
 )
 
@@ -677,6 +685,61 @@ def ownership_manifest_path(
     )
 
 
+def read_generation_template(
+    project_dir: Path,
+) -> str:
+    manifest_path = (
+        project_dir
+        / MANIFEST_FILENAME
+    )
+
+    try:
+        manifest = read_generation_manifest(
+            manifest_path
+        )
+    except GenerationManifestError as error:
+        raise ConversionError(
+            "generation manifestが不正です。"
+            f" project={project_dir.name}"
+            f" path={manifest_path}"
+            f" error={error}"
+        ) from error
+
+    if manifest is None:
+        raise ConversionError(
+            "WordPress変換に必要なgeneration manifestが"
+            "見つかりません。"
+            f" project={project_dir.name}"
+            f" path={manifest_path}"
+        )
+
+    project = manifest.get("project")
+
+    if not isinstance(project, dict):
+        raise ConversionError(
+            "generation manifestのprojectが不正です。"
+            f" project={project_dir.name}"
+            f" path={manifest_path}"
+        )
+
+    template_name = project.get(
+        "template"
+    )
+
+    if (
+        not isinstance(template_name, str)
+        or template_name
+        not in TEMPLATE_CONFIGS
+    ):
+        raise ConversionError(
+            "generation manifestのtemplateが不正です。"
+            f" project={project_dir.name}"
+            f" generation={template_name}"
+        )
+
+    return template_name
+
+
 def normalize_owned_generated_path(
     raw_path: object,
 ) -> str:
@@ -1067,7 +1130,7 @@ def replace_directory_transactionally(
     filesystem_safety.replace_directory_transactionally(
         staging_dir,
         destination_dir,
-        transaction_label="wp",
+        transaction_label=WORDPRESS_DIRECTORY_TRANSACTION_LABEL,
         rename_path=rename_with_retry,
     )
 
@@ -1176,9 +1239,8 @@ def convert_project(
         )
     )
 
-    assert_no_directory_transaction_artifacts(
-        project_dir,
-        transaction_label="wp",
+    assert_no_project_transaction_artifacts(
+        project_dir
     )
 
     if (
@@ -1188,6 +1250,21 @@ def convert_project(
         raise ConversionError(
             "対象案件フォルダが"
             f"見つかりません: {project_dir}"
+        )
+
+    generation_template = (
+        read_generation_template(
+            project_dir
+        )
+    )
+
+    if generation_template != template_name:
+        raise ConversionError(
+            "WordPress変換templateがgeneration manifestと"
+            "一致しません。"
+            f" project={project_dir.name}"
+            f" generation={generation_template}"
+            f" requested={template_name}"
         )
 
     missing_files = [
@@ -1218,6 +1295,20 @@ def convert_project(
             project_dir
         )
     )
+
+    if (
+        ownership_manifest is not None
+        and ownership_manifest["template"]
+        != template_name
+    ):
+        raise ConversionError(
+            "WordPress所有権manifestのtemplateが"
+            "requested templateと一致しません。"
+            f" project={project_dir.name}"
+            f" ownership="
+            f"{ownership_manifest['template']}"
+            f" requested={template_name}"
+        )
 
     conversion_exists = bool(
         existing_files
@@ -1267,7 +1358,8 @@ def convert_project(
         project_dir.parent
         / (
             f".{project_dir.name}"
-            f".wp-tmp-{uuid4().hex}"
+            f".{WORDPRESS_DIRECTORY_TRANSACTION_LABEL}"
+            f"-tmp-{uuid4().hex}"
         )
     )
     preserve_staging = False
@@ -1310,9 +1402,8 @@ def convert_project(
             staging_dir.exists()
             and not preserve_staging
         ):
-            shutil.rmtree(
-                staging_dir,
-                ignore_errors=True,
+            remove_path_quietly(
+                staging_dir
             )
 
     return project_dir, generated_files

@@ -13,6 +13,20 @@ RETRYABLE_WINDOWS_RENAME_ERRORS = {
     32,
     33,
 }
+DEFAULT_DIRECTORY_TRANSACTION_LABEL = ""
+WORDPRESS_DIRECTORY_TRANSACTION_LABEL = "wp"
+PROJECT_DIRECTORY_TRANSACTION_LABELS = (
+    DEFAULT_DIRECTORY_TRANSACTION_LABEL,
+    WORDPRESS_DIRECTORY_TRANSACTION_LABEL,
+)
+PROJECT_INTERNAL_TRANSACTION_PREFIXES = (
+    ".dist.tmp-",
+    ".project-manifest.json.tmp-",
+    ".dist.backup-",
+    ".project-manifest.json.backup-",
+    ".dist.failed-",
+    ".project-manifest.json.failed-",
+)
 
 
 class DirectoryTransactionRecoveryError(RuntimeError):
@@ -119,7 +133,7 @@ def rename_with_retry(
 def directory_transaction_prefixes(
     destination_dir: Path,
     *,
-    transaction_label: str = "",
+    transaction_label: str = DEFAULT_DIRECTORY_TRANSACTION_LABEL,
 ) -> tuple[str, str, str]:
     label_prefix = (
         f"{transaction_label}-"
@@ -141,7 +155,7 @@ def directory_transaction_prefixes(
 def find_directory_transaction_artifacts(
     destination_dir: Path,
     *,
-    transaction_label: str = "",
+    transaction_label: str = DEFAULT_DIRECTORY_TRANSACTION_LABEL,
 ) -> tuple[Path, ...]:
     parent_dir = destination_dir.parent
 
@@ -168,10 +182,67 @@ def find_directory_transaction_artifacts(
     )
 
 
+def find_project_transaction_artifacts(
+    project_dir: Path,
+) -> tuple[Path, ...]:
+    artifacts: set[Path] = set()
+
+    for transaction_label in PROJECT_DIRECTORY_TRANSACTION_LABELS:
+        artifacts.update(
+            find_directory_transaction_artifacts(
+                project_dir,
+                transaction_label=transaction_label,
+            )
+        )
+
+    if project_dir.is_dir():
+        artifacts.update(
+            path
+            for path in project_dir.iterdir()
+            if any(
+                path.name.startswith(prefix)
+                for prefix in PROJECT_INTERNAL_TRANSACTION_PREFIXES
+            )
+        )
+
+    return tuple(
+        sorted(
+            artifacts,
+            key=lambda path: (
+                str(path).casefold(),
+                str(path),
+            ),
+        )
+    )
+
+
+def assert_no_project_transaction_artifacts(
+    project_dir: Path,
+) -> None:
+    artifacts = find_project_transaction_artifacts(
+        project_dir
+    )
+
+    if not artifacts:
+        return
+
+    detail = "\n".join(
+        f"- {path}"
+        for path in artifacts
+    )
+
+    raise RuntimeError(
+        "前回の案件transaction残骸が見つかりました。"
+        "自動処理を停止します。"
+        "内容を確認してから復旧または削除してください。\n"
+        f"{detail}"
+    )
+
+
 def assert_no_directory_transaction_artifacts(
     destination_dir: Path,
     *,
-    transaction_label: str = "",
+    transaction_label: str = DEFAULT_DIRECTORY_TRANSACTION_LABEL,
 ) -> None:
     artifacts = find_directory_transaction_artifacts(
         destination_dir,
@@ -224,7 +295,7 @@ def replace_directory_transactionally(
     staging_dir: Path,
     destination_dir: Path,
     *,
-    transaction_label: str = "",
+    transaction_label: str = DEFAULT_DIRECTORY_TRANSACTION_LABEL,
     rename_path: (
         Callable[[Path, Path], Path]
         | None

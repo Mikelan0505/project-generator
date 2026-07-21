@@ -4,7 +4,6 @@ import argparse
 import re
 import shutil
 import sys
-import warnings
 from datetime import date
 from pathlib import Path
 from uuid import uuid4
@@ -12,7 +11,8 @@ from uuid import uuid4
 import filesystem_safety
 from filesystem_safety import (
     DirectoryTransactionRecoveryError,
-    assert_no_directory_transaction_artifacts,
+    assert_no_project_transaction_artifacts,
+    remove_path_quietly,
     rename_with_retry,
 )
 
@@ -370,92 +370,6 @@ class DistRefreshRecoveryError(RuntimeError):
         )
 
 
-DIST_TRANSACTION_PREFIXES = (
-    ".dist.tmp-",
-    f".{MANIFEST_FILENAME}.tmp-",
-    ".dist.backup-",
-    f".{MANIFEST_FILENAME}.backup-",
-    ".dist.failed-",
-    f".{MANIFEST_FILENAME}.failed-",
-)
-
-
-def find_dist_transaction_artifacts(
-    output_dir: Path,
-) -> tuple[Path, ...]:
-    if not output_dir.is_dir():
-        return ()
-
-    return tuple(
-        sorted(
-            (
-                path
-                for path
-                in output_dir.iterdir()
-                if any(
-                    path.name.startswith(
-                        prefix
-                    )
-                    for prefix
-                    in DIST_TRANSACTION_PREFIXES
-                )
-            ),
-            key=lambda path: path.name,
-        )
-    )
-
-
-def assert_no_dist_transaction_artifacts(
-    output_dir: Path,
-) -> None:
-    artifacts = (
-        find_dist_transaction_artifacts(
-            output_dir
-        )
-    )
-
-    if not artifacts:
-        return
-
-    detail = "\n".join(
-        f"- {path}"
-        for path in artifacts
-    )
-
-    raise RuntimeError(
-        "前回のdist transaction残骸が"
-        "見つかりました。"
-        "自動更新を停止します。"
-        "内容を確認してから復旧または削除"
-        "してください。\n"
-        f"{detail}"
-    )
-
-
-def remove_path_quietly(
-    path: Path,
-) -> None:
-    try:
-        if not path.exists():
-            return
-
-        if path.is_dir():
-            shutil.rmtree(path)
-            return
-
-        path.unlink()
-    except OSError as error:
-        warnings.warn(
-            "transaction cleanupに"
-            "失敗しました。"
-            f" path={path}"
-            f" error={type(error).__name__}: "
-            f"{error}",
-            RuntimeWarning,
-            stacklevel=2,
-        )
-
-
 def replace_dist_and_manifest_transactionally(
     *,
     staging_dist_dir: Path,
@@ -699,6 +613,10 @@ def refresh_dist(
         / sanitize_project_name(project_name)
     )
 
+    assert_no_project_transaction_artifacts(
+        output_dir
+    )
+
     if (
         not output_dir.exists()
         or not output_dir.is_dir()
@@ -706,10 +624,6 @@ def refresh_dist(
         raise FileNotFoundError(
             f"対象案件フォルダが見つかりません: {output_dir}"
         )
-
-    assert_no_dist_transaction_artifacts(
-        output_dir
-    )
 
     existing_manifest_path = (
         output_dir
@@ -797,7 +711,7 @@ def create_project(
 
     outputs_dir = base_dir / "outputs"
     output_dir = outputs_dir / sanitize_project_name(project_name)
-    assert_no_directory_transaction_artifacts(
+    assert_no_project_transaction_artifacts(
         output_dir
     )
 
@@ -855,7 +769,9 @@ def create_project(
             staging_dir.exists()
             and not preserve_staging
         ):
-            shutil.rmtree(staging_dir, ignore_errors=True)
+            remove_path_quietly(
+                staging_dir
+            )
 
     return output_dir
 

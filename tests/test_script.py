@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+import warnings
 from pathlib import Path
 from unittest.mock import patch
 
@@ -118,6 +119,72 @@ class GeneratorSafetyTests(unittest.TestCase):
             )
 
         self.assertTrue(leftover.exists())
+
+    def test_create_rejects_wordpress_transaction_artifact(
+        self,
+    ) -> None:
+        output_dir = self.output_dir()
+        output_dir.parent.mkdir(parents=True)
+
+        leftover = (
+            output_dir.parent
+            / ".sample.wp-backup-orphan"
+        )
+        leftover.mkdir()
+        sentinel = leftover / "keep.txt"
+        sentinel.write_text(
+            "keep\n",
+            encoding="utf-8",
+        )
+
+        with self.assertRaises(
+            RuntimeError
+        ) as context:
+            script.create_project(
+                base_dir=self.base_dir,
+                template_name="website",
+                project_name="sample",
+                force=True,
+            )
+
+        self.assertIn(
+            str(leftover),
+            str(context.exception),
+        )
+        self.assertEqual(
+            "keep\n",
+            sentinel.read_text(
+                encoding="utf-8"
+            ),
+        )
+
+    def test_create_ignores_other_project_transaction_artifact(
+        self,
+    ) -> None:
+        self.create_dist()
+        output_dir = self.output_dir()
+        output_dir.parent.mkdir(parents=True)
+
+        other_leftover = (
+            output_dir.parent
+            / ".sample-other.wp-backup-orphan"
+        )
+        other_leftover.mkdir()
+
+        result = script.create_project(
+            base_dir=self.base_dir,
+            template_name="website",
+            project_name="sample",
+            force=True,
+        )
+
+        self.assertEqual(
+            output_dir,
+            result,
+        )
+        self.assertTrue(
+            other_leftover.exists()
+        )
 
     def test_swap_and_rollback_failure_preserve_recovery_assets(
         self,
@@ -251,12 +318,24 @@ class GeneratorSafetyTests(unittest.TestCase):
         sentinel = output_dir / "keep.txt"
         sentinel.write_text("do not delete\n", encoding="utf-8")
 
-        with patch.object(
-            script,
-            "copy_exiga_dist",
-            side_effect=OSError("copy failed"),
+        with (
+            patch.object(
+                script,
+                "copy_exiga_dist",
+                side_effect=OSError(
+                    "copy failed"
+                ),
+            ),
+            warnings.catch_warnings(
+                record=True
+            ) as caught_warnings,
         ):
-            with self.assertRaisesRegex(OSError, "copy failed"):
+            warnings.simplefilter("always")
+
+            with self.assertRaisesRegex(
+                OSError,
+                "copy failed",
+            ):
                 script.create_project(
                     base_dir=self.base_dir,
                     template_name="website",
@@ -265,10 +344,98 @@ class GeneratorSafetyTests(unittest.TestCase):
                 )
 
         self.assertEqual(
+            [],
+            caught_warnings,
+        )
+
+        self.assertEqual(
             "do not delete\n",
             sentinel.read_text(encoding="utf-8"),
         )
         self.assert_no_transaction_directories(output_dir.parent)
+
+    def test_preswap_cleanup_failure_warns_without_masking_generation_error(
+        self,
+    ) -> None:
+        self.create_dist()
+        output_dir = self.output_dir()
+        output_dir.mkdir(parents=True)
+        sentinel = output_dir / "keep.txt"
+        sentinel.write_text(
+            "keep\n",
+            encoding="utf-8",
+        )
+
+        with (
+            patch.object(
+                script,
+                "copy_exiga_dist",
+                side_effect=OSError(
+                    "generation failed"
+                ),
+            ),
+            patch.object(
+                script.shutil,
+                "rmtree",
+                side_effect=OSError(
+                    "cleanup failed"
+                ),
+            ),
+            warnings.catch_warnings(
+                record=True
+            ) as caught_warnings,
+        ):
+            warnings.simplefilter("always")
+
+            with self.assertRaisesRegex(
+                OSError,
+                "generation failed",
+            ):
+                script.create_project(
+                    base_dir=self.base_dir,
+                    template_name="website",
+                    project_name="sample",
+                    force=True,
+                )
+
+        warning_messages = [
+            str(warning.message)
+            for warning in caught_warnings
+        ]
+
+        self.assertEqual(
+            1,
+            len(warning_messages),
+        )
+        self.assertIn(
+            "cleanup failed",
+            warning_messages[0],
+        )
+        self.assertIn(
+            ".sample.tmp-",
+            warning_messages[0],
+        )
+        self.assertEqual(
+            "keep\n",
+            sentinel.read_text(
+                encoding="utf-8"
+            ),
+        )
+        artifacts = (
+            script.filesystem_safety
+            .find_project_transaction_artifacts(
+                output_dir
+            )
+        )
+        self.assertEqual(
+            1,
+            len(artifacts),
+        )
+        self.assertTrue(
+            artifacts[0].name.startswith(
+                ".sample.tmp-"
+            )
+        )
 
     def test_force_generation_replaces_project_after_success(self) -> None:
         self.create_dist()
@@ -390,6 +557,35 @@ class GeneratorSafetyTests(unittest.TestCase):
                 project_name="sample",
             )
 
+        self.assertTrue(
+            leftover.exists()
+        )
+
+    def test_refresh_rejects_wordpress_transaction_artifact(
+        self,
+    ) -> None:
+        output_dir = self.output_dir()
+        output_dir.mkdir(
+            parents=True
+        )
+        leftover = (
+            output_dir.parent
+            / ".sample.wp-failed-orphan"
+        )
+        leftover.mkdir()
+
+        with self.assertRaises(
+            RuntimeError
+        ) as context:
+            script.refresh_dist(
+                base_dir=self.base_dir,
+                project_name="sample",
+            )
+
+        self.assertIn(
+            str(leftover),
+            str(context.exception),
+        )
         self.assertTrue(
             leftover.exists()
         )

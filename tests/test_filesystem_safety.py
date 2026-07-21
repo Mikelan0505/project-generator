@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import call, patch
 
 from filesystem_safety import (
+    assert_no_project_transaction_artifacts,
+    find_project_transaction_artifacts,
     is_retryable_windows_rename_error,
     rename_with_retry,
 )
@@ -20,6 +23,91 @@ def create_windows_error(
 
 
 class FilesystemSafetyTests(unittest.TestCase):
+    def test_project_artifacts_cover_all_operations_without_false_matches(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            project_dir = (
+                root
+                / "outputs"
+                / "sample"
+            )
+            project_dir.mkdir(parents=True)
+
+            artifact_paths = [
+                project_dir.parent
+                / ".sample.failed-z",
+                project_dir.parent
+                / ".sample.wp-tmp-a",
+                project_dir
+                / ".dist.backup-c",
+                project_dir
+                / (
+                    ".project-manifest.json"
+                    ".failed-b"
+                ),
+            ]
+
+            for path in artifact_paths:
+                path.mkdir()
+                (path / "keep.txt").write_text(
+                    path.name,
+                    encoding="utf-8",
+                )
+
+            other_project_paths = [
+                project_dir.parent
+                / ".sample-other.backup-a",
+                project_dir.parent
+                / ".samplex.wp-failed-a",
+            ]
+
+            for path in other_project_paths:
+                path.mkdir()
+
+            expected = tuple(
+                sorted(
+                    artifact_paths,
+                    key=lambda path: (
+                        str(path).casefold(),
+                        str(path),
+                    ),
+                )
+            )
+
+            self.assertEqual(
+                expected,
+                find_project_transaction_artifacts(
+                    project_dir
+                ),
+            )
+
+            with self.assertRaises(
+                RuntimeError
+            ) as context:
+                assert_no_project_transaction_artifacts(
+                    project_dir
+                )
+
+            for path in artifact_paths:
+                self.assertIn(
+                    str(path),
+                    str(context.exception),
+                )
+                self.assertEqual(
+                    path.name,
+                    (path / "keep.txt").read_text(
+                        encoding="utf-8"
+                    ),
+                )
+
+            for path in other_project_paths:
+                self.assertNotIn(
+                    path,
+                    expected,
+                )
+
     def test_identifies_retryable_windows_errors(self) -> None:
         for winerror in (5, 32, 33):
             with self.subTest(winerror=winerror):

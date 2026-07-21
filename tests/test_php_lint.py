@@ -148,6 +148,27 @@ class GeneratedPhpLintTests(
                     )
 
                     (
+                        project_dir
+                        / "project-manifest.json"
+                    ).write_text(
+                        json.dumps(
+                            {
+                                "schemaVersion": 1,
+                                "project": {
+                                    "template": (
+                                        template_name
+                                    ),
+                                },
+                            },
+                            ensure_ascii=False,
+                            indent=2,
+                        )
+                        + "\n",
+                        encoding="utf-8",
+                        newline="\n",
+                    )
+
+                    (
                         converted_dir,
                         generated_files,
                     ) = (

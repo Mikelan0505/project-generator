@@ -97,6 +97,18 @@ class DocumentationSafetyTests(
                     self.handover,
                 )
 
+        self.assertIn(
+            "カスタムフィールド",
+            self.handover,
+        )
+        self.assertNotIn(
+            (
+                "`functions.php` 連携までは"
+                "進めません"
+            ),
+            self.handover,
+        )
+
     def test_convert_spec_matches_current_capabilities(
         self,
     ) -> None:

@@ -215,7 +215,7 @@ python convert_to_wp.py --project sample-shop --template shop
 python convert_to_wp.py --project sample-lp --template lp
 ```
 
-これは読み込み系だけを PHP 化する最小コマンドです。まだ WordPress ループ、投稿取得、`functions.php` 連携までは進めません。
+これは読み込み系を PHP 化する最小コマンドです。`functions.php` で CSS / JS を enqueue しますが、WordPress 固有の loop、投稿取得、カスタムフィールドなどの動的実装は対象外です。
 
 ## ディレクトリ構成
 

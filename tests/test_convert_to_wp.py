@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+import warnings
 from pathlib import Path
 from unittest.mock import patch
 
@@ -86,19 +87,62 @@ class ConversionSafetyTests(unittest.TestCase):
             encoding="utf-8",
         )
 
+        self.write_generation_manifest(
+            "website"
+        )
+
     def tearDown(self) -> None:
         self.temporary_directory.cleanup()
 
     def assert_no_transaction_directories(self) -> None:
-        leftovers = [
-            path.name
-            for path in self.project_dir.parent.iterdir()
-            if path.name.startswith(".sample.wp-tmp-")
-            or path.name.startswith(".sample.wp-backup-")
-            or path.name.startswith(".sample.wp-failed-")
-        ]
+        self.assertEqual(
+            (),
+            convert_to_wp.filesystem_safety
+            .find_project_transaction_artifacts(
+                self.project_dir
+            ),
+        )
 
-        self.assertEqual([], leftovers)
+    def generation_manifest_path(
+        self,
+    ) -> Path:
+        return (
+            self.project_dir
+            / "project-manifest.json"
+        )
+
+    def write_generation_manifest(
+        self,
+        template_name: str,
+    ) -> None:
+        self.generation_manifest_path().write_text(
+            json.dumps(
+                {
+                    "schemaVersion": 1,
+                    "project": {
+                        "template": template_name,
+                    },
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+
+    def project_snapshot(
+        self,
+    ) -> dict[str, bytes]:
+        return {
+            path.relative_to(
+                self.project_dir
+            ).as_posix(): path.read_bytes()
+            for path in sorted(
+                self.project_dir.rglob("*")
+            )
+            if path.is_file()
+        }
 
     def ownership_manifest_path(
         self,
@@ -215,6 +259,130 @@ class ConversionSafetyTests(unittest.TestCase):
                 ),
             )
 
+        self.assert_no_transaction_directories()
+
+    def test_initial_conversion_rejects_generation_template_mismatch(
+        self,
+    ) -> None:
+        before = self.project_snapshot()
+
+        with self.assertRaisesRegex(
+            convert_to_wp.ConversionError,
+            (
+                "project=sample"
+                ".*generation=website"
+                ".*requested=shop"
+            ),
+        ):
+            convert_to_wp.convert_project(
+                base_dir=self.base_dir,
+                project_name="sample",
+                template_name="shop",
+            )
+
+        self.assertEqual(
+            before,
+            self.project_snapshot(),
+        )
+        self.assert_no_transaction_directories()
+
+    def test_conversion_requires_valid_generation_manifest(
+        self,
+    ) -> None:
+        for invalid_content in (
+            None,
+            "{ invalid json\n",
+        ):
+            with self.subTest(
+                invalid_content=invalid_content
+            ):
+                self.write_generation_manifest(
+                    "website"
+                )
+
+                if invalid_content is None:
+                    self.generation_manifest_path().unlink()
+                else:
+                    self.generation_manifest_path().write_text(
+                        invalid_content,
+                        encoding="utf-8",
+                    )
+
+                before = self.project_snapshot()
+
+                with self.assertRaisesRegex(
+                    convert_to_wp.ConversionError,
+                    "generation manifest",
+                ):
+                    convert_to_wp.convert_project(
+                        base_dir=self.base_dir,
+                        project_name="sample",
+                        template_name="website",
+                    )
+
+                self.assertEqual(
+                    before,
+                    self.project_snapshot(),
+                )
+                self.assert_no_transaction_directories()
+
+    def test_force_rejects_requested_template_mismatch(
+        self,
+    ) -> None:
+        convert_to_wp.convert_project(
+            base_dir=self.base_dir,
+            project_name="sample",
+            template_name="website",
+        )
+        before = self.project_snapshot()
+
+        with self.assertRaisesRegex(
+            convert_to_wp.ConversionError,
+            "generation=website.*requested=shop",
+        ):
+            convert_to_wp.convert_project(
+                base_dir=self.base_dir,
+                project_name="sample",
+                template_name="shop",
+                force=True,
+            )
+
+        self.assertEqual(
+            before,
+            self.project_snapshot(),
+        )
+        self.assert_no_transaction_directories()
+
+    def test_force_rejects_ownership_template_mismatch(
+        self,
+    ) -> None:
+        convert_to_wp.convert_project(
+            base_dir=self.base_dir,
+            project_name="sample",
+            template_name="website",
+        )
+        manifest = self.read_ownership_manifest()
+        manifest["template"] = "shop"
+        self.write_ownership_manifest(
+            manifest
+        )
+        before = self.project_snapshot()
+
+        with self.assertRaisesRegex(
+            convert_to_wp.ConversionError,
+            "ownership=shop.*requested=website",
+        ):
+            convert_to_wp.convert_project(
+                base_dir=self.base_dir,
+                project_name="sample",
+                template_name="website",
+                force=True,
+            )
+
+        self.assertEqual(
+            before,
+            self.project_snapshot(),
+        )
         self.assert_no_transaction_directories()
 
     def test_existing_generated_files_require_force(
@@ -805,14 +973,24 @@ class ConversionSafetyTests(unittest.TestCase):
             / "style.css"
         ).unlink()
 
-        with self.assertRaises(
-            convert_to_wp.ConversionError
-        ):
-            convert_to_wp.convert_project(
-                base_dir=self.base_dir,
-                project_name="sample",
-                template_name="website",
-            )
+        with warnings.catch_warnings(
+            record=True
+        ) as caught_warnings:
+            warnings.simplefilter("always")
+
+            with self.assertRaises(
+                convert_to_wp.ConversionError
+            ):
+                convert_to_wp.convert_project(
+                    base_dir=self.base_dir,
+                    project_name="sample",
+                    template_name="website",
+                )
+
+        self.assertEqual(
+            [],
+            caught_warnings,
+        )
 
         self.assertEqual(
             "keep\n",
@@ -824,6 +1002,81 @@ class ConversionSafetyTests(unittest.TestCase):
             (self.project_dir / "functions.php").exists()
         )
         self.assert_no_transaction_directories()
+
+    def test_preswap_cleanup_failure_warns_without_masking_conversion_error(
+        self,
+    ) -> None:
+        with (
+            patch.object(
+                convert_to_wp,
+                "generate_wp_stub_files",
+                side_effect=(
+                    convert_to_wp.ConversionError(
+                        "generation failed"
+                    )
+                ),
+            ),
+            patch.object(
+                convert_to_wp.shutil,
+                "rmtree",
+                side_effect=OSError(
+                    "cleanup failed"
+                ),
+            ),
+            warnings.catch_warnings(
+                record=True
+            ) as caught_warnings,
+        ):
+            warnings.simplefilter("always")
+
+            with self.assertRaisesRegex(
+                convert_to_wp.ConversionError,
+                "generation failed",
+            ):
+                convert_to_wp.convert_project(
+                    base_dir=self.base_dir,
+                    project_name="sample",
+                    template_name="website",
+                )
+
+        warning_messages = [
+            str(warning.message)
+            for warning in caught_warnings
+        ]
+
+        self.assertEqual(
+            1,
+            len(warning_messages),
+        )
+        self.assertIn(
+            "cleanup failed",
+            warning_messages[0],
+        )
+        self.assertIn(
+            ".sample.wp-tmp-",
+            warning_messages[0],
+        )
+        self.assertEqual(
+            "keep\n",
+            (self.project_dir / "keep.txt").read_text(
+                encoding="utf-8"
+            ),
+        )
+        artifacts = (
+            convert_to_wp.filesystem_safety
+            .find_project_transaction_artifacts(
+                self.project_dir
+            )
+        )
+        self.assertEqual(
+            1,
+            len(artifacts),
+        )
+        self.assertTrue(
+            artifacts[0].name.startswith(
+                ".sample.wp-tmp-"
+            )
+        )
 
     def test_swap_failure_restores_original_directory(self) -> None:
         staging_dir = (
@@ -904,6 +1157,40 @@ class ConversionSafetyTests(unittest.TestCase):
             )
 
         self.assertTrue(leftover.exists())
+
+    def test_conversion_rejects_normal_transaction_artifact(
+        self,
+    ) -> None:
+        leftover = (
+            self.project_dir.parent
+            / ".sample.backup-orphan"
+        )
+        leftover.mkdir()
+        sentinel = leftover / "keep.txt"
+        sentinel.write_text(
+            "keep\n",
+            encoding="utf-8",
+        )
+
+        with self.assertRaisesRegex(
+            RuntimeError,
+            str(leftover).replace(
+                "\\",
+                "\\\\",
+            ),
+        ):
+            convert_to_wp.convert_project(
+                base_dir=self.base_dir,
+                project_name="sample",
+                template_name="website",
+            )
+
+        self.assertEqual(
+            "keep\n",
+            sentinel.read_text(
+                encoding="utf-8"
+            ),
+        )
 
     def test_swap_and_rollback_failure_preserve_recovery_assets(
         self,
