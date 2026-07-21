@@ -252,19 +252,163 @@ class GenerationManifestTests(unittest.TestCase):
             refreshed_css_hash,
         )
 
-    def test_transaction_failure_restores_dist_and_manifest(
+    def test_each_forward_rename_failure_restores_old_assets(
+        self,
+    ) -> None:
+        for failure_call in range(1, 5):
+            with self.subTest(
+                failure_call=failure_call
+            ):
+                output_dir = (
+                    self.base_dir
+                    / "outputs"
+                    / f"sample-{failure_call}"
+                )
+                destination_dist = (
+                    output_dir
+                    / "dist"
+                )
+                destination_dist.mkdir(
+                    parents=True
+                )
+
+                (
+                    destination_dist
+                    / "old.txt"
+                ).write_text(
+                    "old dist\n",
+                    encoding="utf-8",
+                )
+
+                destination_manifest = (
+                    output_dir
+                    / MANIFEST_FILENAME
+                )
+                destination_manifest.write_text(
+                    "old manifest\n",
+                    encoding="utf-8",
+                )
+
+                staging_dist = (
+                    output_dir
+                    / ".dist.tmp-test"
+                )
+                staging_dist.mkdir()
+
+                (
+                    staging_dist
+                    / "new.txt"
+                ).write_text(
+                    "new dist\n",
+                    encoding="utf-8",
+                )
+
+                staging_manifest = (
+                    output_dir
+                    / (
+                        ".project-manifest.json"
+                        ".tmp-test"
+                    )
+                )
+                staging_manifest.write_text(
+                    "new manifest\n",
+                    encoding="utf-8",
+                )
+
+                call_count = 0
+
+                def rename_with_failure(
+                    source: Path,
+                    destination: Path,
+                ) -> Path:
+                    nonlocal call_count
+                    call_count += 1
+
+                    if (
+                        call_count
+                        == failure_call
+                    ):
+                        raise OSError(
+                            "forward rename failed "
+                            f"at {failure_call}"
+                        )
+
+                    return source.rename(
+                        destination
+                    )
+
+                with patch.object(
+                    script,
+                    "rename_with_retry",
+                    side_effect=(
+                        rename_with_failure
+                    ),
+                ):
+                    with self.assertRaisesRegex(
+                        OSError,
+                        (
+                            "forward rename failed "
+                            f"at {failure_call}"
+                        ),
+                    ):
+                        script.replace_dist_and_manifest_transactionally(
+                            staging_dist_dir=(
+                                staging_dist
+                            ),
+                            staging_manifest_path=(
+                                staging_manifest
+                            ),
+                            output_dir=output_dir,
+                        )
+
+                self.assertEqual(
+                    "old dist\n",
+                    (
+                        destination_dist
+                        / "old.txt"
+                    ).read_text(
+                        encoding="utf-8"
+                    ),
+                )
+                self.assertEqual(
+                    "old manifest\n",
+                    destination_manifest.read_text(
+                        encoding="utf-8"
+                    ),
+                )
+
+                leftovers = [
+                    path.name
+                    for path
+                    in output_dir.iterdir()
+                    if (
+                        ".backup-"
+                        in path.name
+                        or ".failed-"
+                        in path.name
+                    )
+                ]
+
+                self.assertEqual(
+                    [],
+                    leftovers,
+                )
+
+    def test_rollback_failure_preserves_recovery_assets_and_original_error(
         self,
     ) -> None:
         output_dir = (
             self.base_dir
             / "outputs"
-            / "sample"
+            / "rollback-failure"
         )
         destination_dist = (
             output_dir
             / "dist"
         )
-        destination_dist.mkdir(parents=True)
+        destination_dist.mkdir(
+            parents=True
+        )
 
         (
             destination_dist
@@ -299,47 +443,130 @@ class GenerationManifestTests(unittest.TestCase):
 
         staging_manifest = (
             output_dir
-            / ".project-manifest.json.tmp-test"
+            / (
+                ".project-manifest.json"
+                ".tmp-test"
+            )
         )
         staging_manifest.write_text(
             "new manifest\n",
             encoding="utf-8",
         )
 
-        def rename_with_failure(
+        call_count = 0
+
+        def rename_with_failures(
             source: Path,
             destination: Path,
         ) -> Path:
-            if source == staging_manifest:
+            nonlocal call_count
+            call_count += 1
+
+            if call_count == 4:
                 raise OSError(
                     "manifest swap failed"
                 )
 
-            return source.rename(destination)
+            if (
+                source.name.startswith(
+                    ".dist.backup-"
+                )
+                and destination
+                == destination_dist
+            ):
+                raise OSError(
+                    "dist restore failed"
+                )
+
+            return source.rename(
+                destination
+            )
 
         with patch.object(
             script,
             "rename_with_retry",
-            side_effect=rename_with_failure,
+            side_effect=(
+                rename_with_failures
+            ),
         ):
-            with self.assertRaisesRegex(
-                OSError,
-                "manifest swap failed",
-            ):
+            with self.assertRaises(
+                script.DistRefreshRecoveryError
+            ) as context:
                 script.replace_dist_and_manifest_transactionally(
-                    staging_dist_dir=staging_dist,
+                    staging_dist_dir=(
+                        staging_dist
+                    ),
                     staging_manifest_path=(
                         staging_manifest
                     ),
                     output_dir=output_dir,
                 )
 
+        error = context.exception
+
+        self.assertIsInstance(
+            error.__cause__,
+            OSError,
+        )
+        self.assertIn(
+            "manifest swap failed",
+            str(error.__cause__),
+        )
+        self.assertIn(
+            "dist restore failed",
+            str(error),
+        )
+        self.assertIn(
+            "backup_dist=",
+            str(error),
+        )
+        self.assertIn(
+            "failed_dist=",
+            str(error),
+        )
+
+        backup_dist = [
+            path
+            for path
+            in output_dir.iterdir()
+            if path.name.startswith(
+                ".dist.backup-"
+            )
+        ]
+        failed_dist = [
+            path
+            for path
+            in output_dir.iterdir()
+            if path.name.startswith(
+                ".dist.failed-"
+            )
+        ]
+
+        self.assertEqual(
+            1,
+            len(backup_dist),
+        )
+        self.assertEqual(
+            1,
+            len(failed_dist),
+        )
         self.assertEqual(
             "old dist\n",
             (
-                destination_dist
+                backup_dist[0]
                 / "old.txt"
-            ).read_text(encoding="utf-8"),
+            ).read_text(
+                encoding="utf-8"
+            ),
+        )
+        self.assertEqual(
+            "new dist\n",
+            (
+                failed_dist[0]
+                / "new.txt"
+            ).read_text(
+                encoding="utf-8"
+            ),
         )
         self.assertEqual(
             "old manifest\n",
@@ -348,16 +575,33 @@ class GenerationManifestTests(unittest.TestCase):
             ),
         )
 
-        leftovers = [
-            path.name
-            for path in output_dir.iterdir()
-            if (
-                ".backup-" in path.name
-                or ".failed-" in path.name
-            )
-        ]
+    def test_cleanup_failure_emits_warning(
+        self,
+    ) -> None:
+        cleanup_dir = (
+            self.root
+            / "cleanup-failure"
+        )
+        cleanup_dir.mkdir()
 
-        self.assertEqual([], leftovers)
+        with patch.object(
+            script.shutil,
+            "rmtree",
+            side_effect=OSError(
+                "cleanup failed"
+            ),
+        ):
+            with self.assertWarnsRegex(
+                RuntimeWarning,
+                "cleanup failed",
+            ):
+                script.remove_path_quietly(
+                    cleanup_dir
+                )
+
+        self.assertTrue(
+            cleanup_dir.exists()
+        )
 
     def test_tree_hash_changes_when_content_changes(
         self,

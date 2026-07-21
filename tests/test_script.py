@@ -66,6 +66,16 @@ class GeneratorSafetyTests(unittest.TestCase):
             or path.name.startswith(".sample.backup-")
             or path.name.startswith(".dist.tmp-")
             or path.name.startswith(".dist.backup-")
+            or path.name.startswith(".dist.failed-")
+            or path.name.startswith(
+                ".project-manifest.json.tmp-"
+            )
+            or path.name.startswith(
+                ".project-manifest.json.backup-"
+            )
+            or path.name.startswith(
+                ".project-manifest.json.failed-"
+            )
         ]
 
         self.assertEqual([], leftovers)
@@ -214,6 +224,34 @@ class GeneratorSafetyTests(unittest.TestCase):
             existing_file.read_text(encoding="utf-8"),
         )
         self.assert_no_transaction_directories(output_dir)
+
+
+    def test_refresh_rejects_unresolved_transaction_artifacts(
+        self,
+    ) -> None:
+        output_dir = self.output_dir()
+        output_dir.mkdir(
+            parents=True
+        )
+
+        leftover = (
+            output_dir
+            / ".dist.backup-orphan"
+        )
+        leftover.mkdir()
+
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "transaction残骸",
+        ):
+            script.refresh_dist(
+                base_dir=self.base_dir,
+                project_name="sample",
+            )
+
+        self.assertTrue(
+            leftover.exists()
+        )
 
 
 if __name__ == "__main__":

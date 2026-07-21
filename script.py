@@ -4,6 +4,7 @@ import argparse
 import re
 import shutil
 import sys
+import warnings
 from datetime import date
 from pathlib import Path
 from uuid import uuid4
@@ -349,21 +350,146 @@ def replace_directory_transactionally(
 
 
 
-def remove_path_quietly(path: Path) -> None:
-    if not path.exists():
-        return
-
-    if path.is_dir():
-        shutil.rmtree(
-            path,
-            ignore_errors=True,
+class DistRefreshRecoveryError(RuntimeError):
+    def __init__(
+        self,
+        *,
+        original_error: Exception,
+        recovery_errors: list[
+            tuple[str, Exception]
+        ],
+        backup_dist_dir: Path,
+        backup_manifest_path: Path,
+        failed_dist_dir: Path,
+        failed_manifest_path: Path,
+    ) -> None:
+        self.original_error = original_error
+        self.recovery_errors = tuple(
+            recovery_errors
         )
+        self.backup_dist_dir = (
+            backup_dist_dir
+        )
+        self.backup_manifest_path = (
+            backup_manifest_path
+        )
+        self.failed_dist_dir = (
+            failed_dist_dir
+        )
+        self.failed_manifest_path = (
+            failed_manifest_path
+        )
+
+        recovery_detail = "; ".join(
+            (
+                f"{label}: "
+                f"{type(error).__name__}: "
+                f"{error}"
+            )
+            for label, error
+            in recovery_errors
+        )
+
+        super().__init__(
+            "dist/manifest transactionに失敗し、"
+            "rollbackも完了しませんでした。"
+            f" original="
+            f"{type(original_error).__name__}: "
+            f"{original_error};"
+            f" recovery={recovery_detail};"
+            f" backup_dist={backup_dist_dir};"
+            f" backup_manifest="
+            f"{backup_manifest_path};"
+            f" failed_dist={failed_dist_dir};"
+            f" failed_manifest="
+            f"{failed_manifest_path}"
+        )
+
+
+DIST_TRANSACTION_PREFIXES = (
+    ".dist.tmp-",
+    f".{MANIFEST_FILENAME}.tmp-",
+    ".dist.backup-",
+    f".{MANIFEST_FILENAME}.backup-",
+    ".dist.failed-",
+    f".{MANIFEST_FILENAME}.failed-",
+)
+
+
+def find_dist_transaction_artifacts(
+    output_dir: Path,
+) -> tuple[Path, ...]:
+    if not output_dir.is_dir():
+        return ()
+
+    return tuple(
+        sorted(
+            (
+                path
+                for path
+                in output_dir.iterdir()
+                if any(
+                    path.name.startswith(
+                        prefix
+                    )
+                    for prefix
+                    in DIST_TRANSACTION_PREFIXES
+                )
+            ),
+            key=lambda path: path.name,
+        )
+    )
+
+
+def assert_no_dist_transaction_artifacts(
+    output_dir: Path,
+) -> None:
+    artifacts = (
+        find_dist_transaction_artifacts(
+            output_dir
+        )
+    )
+
+    if not artifacts:
         return
 
+    detail = "\n".join(
+        f"- {path}"
+        for path in artifacts
+    )
+
+    raise RuntimeError(
+        "前回のdist transaction残骸が"
+        "見つかりました。"
+        "自動更新を停止します。"
+        "内容を確認してから復旧または削除"
+        "してください。\n"
+        f"{detail}"
+    )
+
+
+def remove_path_quietly(
+    path: Path,
+) -> None:
     try:
+        if not path.exists():
+            return
+
+        if path.is_dir():
+            shutil.rmtree(path)
+            return
+
         path.unlink()
-    except OSError:
-        pass
+    except OSError as error:
+        warnings.warn(
+            "transaction cleanupに"
+            "失敗しました。"
+            f" path={path}"
+            f" error={type(error).__name__}: "
+            f"{error}",
+            RuntimeWarning,
+            stacklevel=2,
+        )
 
 
 def replace_dist_and_manifest_transactionally(
@@ -372,7 +498,10 @@ def replace_dist_and_manifest_transactionally(
     staging_manifest_path: Path,
     output_dir: Path,
 ) -> None:
-    destination_dist_dir = output_dir / "dist"
+    destination_dist_dir = (
+        output_dir
+        / "dist"
+    )
     destination_manifest_path = (
         output_dir
         / MANIFEST_FILENAME
@@ -383,7 +512,8 @@ def replace_dist_and_manifest_transactionally(
         and not destination_dist_dir.is_dir()
     ):
         raise FileExistsError(
-            "既存distがディレクトリではありません: "
+            "既存distがディレクトリでは"
+            "ありません: "
             f"{destination_dist_dir}"
         )
 
@@ -392,7 +522,8 @@ def replace_dist_and_manifest_transactionally(
         and not destination_manifest_path.is_file()
     ):
         raise FileExistsError(
-            "既存manifestがファイルではありません: "
+            "既存manifestがファイルでは"
+            "ありません: "
             f"{destination_manifest_path}"
         )
 
@@ -413,64 +544,174 @@ def replace_dist_and_manifest_transactionally(
         f"{transaction_id}"
     )
 
-    had_dist = destination_dist_dir.exists()
+    had_dist = (
+        destination_dist_dir.exists()
+    )
     had_manifest = (
         destination_manifest_path.exists()
     )
 
-    if had_dist:
-        rename_with_retry(
-            destination_dist_dir,
-            backup_dist_dir,
-        )
-
-    if had_manifest:
-        rename_with_retry(
-            destination_manifest_path,
-            backup_manifest_path,
-        )
+    backed_up_dist = False
+    backed_up_manifest = False
+    installed_dist = False
+    installed_manifest = False
 
     try:
+        if had_dist:
+            rename_with_retry(
+                destination_dist_dir,
+                backup_dist_dir,
+            )
+            backed_up_dist = True
+
+        if had_manifest:
+            rename_with_retry(
+                destination_manifest_path,
+                backup_manifest_path,
+            )
+            backed_up_manifest = True
+
         rename_with_retry(
             staging_dist_dir,
             destination_dist_dir,
         )
+        installed_dist = True
+
         rename_with_retry(
             staging_manifest_path,
             destination_manifest_path,
         )
-    except Exception:
-        try:
-            if destination_manifest_path.exists():
-                rename_with_retry(
-                    destination_manifest_path,
-                    failed_manifest_path,
-                )
+        installed_manifest = True
+    except Exception as original_error:
+        recovery_errors: list[
+            tuple[str, Exception]
+        ] = []
 
+        def attempt_recovery_rename(
+            *,
+            label: str,
+            source: Path,
+            destination: Path,
+        ) -> bool:
+            try:
+                rename_with_retry(
+                    source,
+                    destination,
+                )
+            except Exception as error:
+                recovery_errors.append(
+                    (label, error)
+                )
+                return False
+
+            return True
+
+        if (
+            installed_manifest
+            and destination_manifest_path.exists()
+        ):
+            attempt_recovery_rename(
+                label=(
+                    "new manifest quarantine"
+                ),
+                source=(
+                    destination_manifest_path
+                ),
+                destination=(
+                    failed_manifest_path
+                ),
+            )
+
+        if (
+            installed_dist
+            and destination_dist_dir.exists()
+        ):
+            attempt_recovery_rename(
+                label="new dist quarantine",
+                source=destination_dist_dir,
+                destination=failed_dist_dir,
+            )
+
+        if (
+            backed_up_dist
+            and backup_dist_dir.exists()
+        ):
             if destination_dist_dir.exists():
-                rename_with_retry(
-                    destination_dist_dir,
-                    failed_dist_dir,
+                recovery_errors.append(
+                    (
+                        "old dist restore",
+                        RuntimeError(
+                            "復元先distが"
+                            "使用中です: "
+                            f"{destination_dist_dir}"
+                        ),
+                    )
+                )
+            else:
+                attempt_recovery_rename(
+                    label="old dist restore",
+                    source=backup_dist_dir,
+                    destination=(
+                        destination_dist_dir
+                    ),
                 )
 
-            if backup_dist_dir.exists():
-                rename_with_retry(
-                    backup_dist_dir,
-                    destination_dist_dir,
+        if (
+            backed_up_manifest
+            and backup_manifest_path.exists()
+        ):
+            if (
+                destination_manifest_path.exists()
+            ):
+                recovery_errors.append(
+                    (
+                        "old manifest restore",
+                        RuntimeError(
+                            "復元先manifestが"
+                            "使用中です: "
+                            f"{destination_manifest_path}"
+                        ),
+                    )
+                )
+            else:
+                attempt_recovery_rename(
+                    label=(
+                        "old manifest restore"
+                    ),
+                    source=(
+                        backup_manifest_path
+                    ),
+                    destination=(
+                        destination_manifest_path
+                    ),
                 )
 
-            if backup_manifest_path.exists():
-                rename_with_retry(
-                    backup_manifest_path,
-                    destination_manifest_path,
-                )
-        finally:
-            remove_path_quietly(
-                failed_dist_dir
-            )
-            remove_path_quietly(
-                failed_manifest_path
-            )
+        if recovery_errors:
+            raise DistRefreshRecoveryError(
+                original_error=original_error,
+                recovery_errors=(
+                    recovery_errors
+                ),
+                backup_dist_dir=(
+                    backup_dist_dir
+                ),
+                backup_manifest_path=(
+                    backup_manifest_path
+                ),
+                failed_dist_dir=(
+                    failed_dist_dir
+                ),
+                failed_manifest_path=(
+                    failed_manifest_path
+                ),
+            ) from original_error
+
+        remove_path_quietly(
+            failed_dist_dir
+        )
+        remove_path_quietly(
+            failed_manifest_path
+        )
 
         raise
     else:
@@ -501,6 +742,10 @@ def refresh_dist(
         raise FileNotFoundError(
             f"対象案件フォルダが見つかりません: {output_dir}"
         )
+
+    assert_no_dist_transaction_artifacts(
+        output_dir
+    )
 
     existing_manifest_path = (
         output_dir
