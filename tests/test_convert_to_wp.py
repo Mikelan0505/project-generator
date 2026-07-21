@@ -536,6 +536,224 @@ class ConversionSafetyTests(unittest.TestCase):
 
         self.assert_no_transaction_directories()
 
+    def test_navigation_current_state_is_dynamic_and_nav_scoped(
+        self,
+    ) -> None:
+        source = """
+<nav class="site-nav">
+  <a href="./index.html" class="is-current" aria-current="page">Top</a>
+  <a href="./products.html">Products</a>
+  <a href="./contact.html" class="site-nav__cta">Contact</a>
+</nav>
+<a href="./products.html">Outside navigation</a>
+"""
+
+        result = (
+            convert_to_wp
+            .rewrite_navigation_current_state(
+                source,
+                home_url_map={
+                    "index.html": "home",
+                    "products.html": (
+                        "products"
+                    ),
+                    "contact.html": (
+                        "contact"
+                    ),
+                },
+            )
+        )
+
+        self.assertIn(
+            "is_front_page()",
+            result,
+        )
+        self.assertIn(
+            "is_page( 'products' )",
+            result,
+        )
+        self.assertIn(
+            "is_page( 'contact' )",
+            result,
+        )
+        self.assertIn(
+            (
+                "site-nav__cta"
+                "<?php echo "
+                "is_page( 'contact' )"
+                " ? ' is-current' : ''; ?>"
+            ),
+            result,
+        )
+        self.assertIn(
+            'aria-current="page"',
+            result,
+        )
+        self.assertIn(
+            (
+                '<a href="./products.html">'
+                "Outside navigation</a>"
+            ),
+            result,
+        )
+
+    def test_generated_navigation_uses_wordpress_current_conditions(
+        self,
+    ) -> None:
+        navigation_html = """<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <title>Navigation Sample</title>
+  <link
+    rel="stylesheet"
+    href="./dist/css/main.css"
+  />
+</head>
+<body class="t-website p-home">
+  <header class="site-header">
+    <a
+      href="./index.html"
+      class="site-title__link"
+    >
+      Sample
+    </a>
+
+    <nav
+      class="site-nav"
+      aria-label="Global navigation"
+    >
+      <a
+        href="./index.html"
+        class="is-current"
+        aria-current="page"
+      >
+        Top
+      </a>
+      <a href="./about.html">
+        About
+      </a>
+      <a href="./service.html">
+        Service
+      </a>
+      <a
+        href="./contact.html"
+        class="site-nav__cta"
+      >
+        Contact
+      </a>
+    </nav>
+  </header>
+
+  <main class="site-main">
+    <h1>Navigation Sample</h1>
+  </main>
+
+  <footer class="site-footer">
+    <nav
+      class="footer__nav"
+      aria-label="Footer navigation"
+    >
+      <a href="./index.html">
+        Top
+      </a>
+      <a href="./about.html">
+        About
+      </a>
+      <a href="./service.html">
+        Service
+      </a>
+      <a href="./contact.html">
+        Contact
+      </a>
+    </nav>
+  </footer>
+
+  <script
+    type="module"
+    src="./dist/js/core/app.js"
+  ></script>
+</body>
+</html>
+"""
+
+        (
+            self.project_dir
+            / "index.html"
+        ).write_text(
+            navigation_html,
+            encoding="utf-8",
+        )
+
+        convert_to_wp.convert_project(
+            base_dir=self.base_dir,
+            project_name="sample",
+            template_name="website",
+        )
+
+        header_php = (
+            self.project_dir
+            / "header.php"
+        ).read_text(
+            encoding="utf-8"
+        )
+        footer_php = (
+            self.project_dir
+            / "footer.php"
+        ).read_text(
+            encoding="utf-8"
+        )
+
+        expected_conditions = (
+            "is_front_page()",
+            "is_page( 'about' )",
+            "is_page( 'service' )",
+            "is_page( 'contact' )",
+        )
+
+        for condition in (
+            expected_conditions
+        ):
+            with self.subTest(
+                condition=condition
+            ):
+                self.assertIn(
+                    condition,
+                    header_php,
+                )
+                self.assertIn(
+                    condition,
+                    footer_php,
+                )
+
+        self.assertEqual(
+            4,
+            header_php.count(
+                'aria-current="page"'
+            ),
+        )
+        self.assertEqual(
+            4,
+            footer_php.count(
+                'aria-current="page"'
+            ),
+        )
+
+        self.assertNotIn(
+            (
+                'class="is-current" '
+                'aria-current="page">'
+            ),
+            header_php,
+        )
+        self.assertNotIn(
+            (
+                'class="is-current" '
+                'aria-current="page">'
+            ),
+            footer_php,
+        )
+
     def test_generated_pages_register_expected_body_classes(
         self,
     ) -> None:

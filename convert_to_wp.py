@@ -334,6 +334,192 @@ def rewrite_href_and_src_paths(text: str, *, home_url_map: dict[str, str]) -> st
     return attr_pattern.sub(replacer, text)
 
 
+def wordpress_current_page_condition(
+    path: str,
+    *,
+    home_url_map: dict[str, str],
+) -> str | None:
+    normalized = normalize_path(path)
+
+    if normalized not in home_url_map:
+        return None
+
+    if normalized == "index.html":
+        return "is_front_page()"
+
+    slug = Path(normalized).stem
+
+    if not re.fullmatch(
+        r"[a-z0-9-]+",
+        slug,
+    ):
+        return None
+
+    return f"is_page( '{slug}' )"
+
+
+def rewrite_navigation_current_state(
+    text: str,
+    *,
+    home_url_map: dict[str, str],
+) -> str:
+    nav_pattern = re.compile(
+        r"<nav\b[^>]*>.*?</nav>",
+        flags=(
+            re.IGNORECASE
+            | re.DOTALL
+        ),
+    )
+    anchor_pattern = re.compile(
+        r"<a\b[^>]*>",
+        flags=(
+            re.IGNORECASE
+            | re.DOTALL
+        ),
+    )
+    href_pattern = re.compile(
+        (
+            r"\bhref\s*=\s*"
+            r"(?P<quote>[\"'])"
+            r"(?P<path>.*?)"
+            r"(?P=quote)"
+        ),
+        flags=(
+            re.IGNORECASE
+            | re.DOTALL
+        ),
+    )
+    class_pattern = re.compile(
+        (
+            r"\bclass\s*=\s*"
+            r"(?P<quote>[\"'])"
+            r"(?P<classes>.*?)"
+            r"(?P=quote)"
+        ),
+        flags=(
+            re.IGNORECASE
+            | re.DOTALL
+        ),
+    )
+    current_pattern = re.compile(
+        (
+            r"\s+aria-current\s*=\s*"
+            r"(?P<quote>[\"'])"
+            r"page"
+            r"(?P=quote)"
+        ),
+        flags=re.IGNORECASE,
+    )
+
+    def rewrite_anchor(
+        match: re.Match[str],
+    ) -> str:
+        anchor = match.group(0)
+        href_match = href_pattern.search(
+            anchor
+        )
+
+        if href_match is None:
+            return anchor
+
+        condition = (
+            wordpress_current_page_condition(
+                href_match.group("path"),
+                home_url_map=home_url_map,
+            )
+        )
+
+        if condition is None:
+            return anchor
+
+        anchor = current_pattern.sub(
+            "",
+            anchor,
+        )
+
+        class_match = class_pattern.search(
+            anchor
+        )
+
+        if class_match is not None:
+            class_tokens = [
+                token
+                for token
+                in class_match.group(
+                    "classes"
+                ).split()
+                if token != "is-current"
+            ]
+            static_classes = " ".join(
+                class_tokens
+            )
+            active_value = (
+                " is-current"
+                if static_classes
+                else "is-current"
+            )
+            dynamic_class = (
+                'class="'
+                + static_classes
+                + "<?php echo "
+                + condition
+                + " ? '"
+                + active_value
+                + "' : ''; ?>"
+                + '"'
+            )
+
+            anchor = (
+                anchor[
+                    :class_match.start()
+                ]
+                + dynamic_class
+                + anchor[
+                    class_match.end():
+                ]
+            )
+
+            current_attribute = (
+                "<?php if ( "
+                + condition
+                + ' ) : ?> aria-current="page"'
+                + "<?php endif; ?>"
+            )
+
+            return (
+                anchor[:-1]
+                + current_attribute
+                + ">"
+            )
+
+        current_attributes = (
+            "<?php if ( "
+            + condition
+            + ' ) : ?> class="is-current"'
+            + ' aria-current="page"'
+            + "<?php endif; ?>"
+        )
+
+        return (
+            anchor[:-1]
+            + current_attributes
+            + ">"
+        )
+
+    def rewrite_nav(
+        match: re.Match[str],
+    ) -> str:
+        return anchor_pattern.sub(
+            rewrite_anchor,
+            match.group(0),
+        )
+
+    return nav_pattern.sub(
+        rewrite_nav,
+        text,
+    )
+
+
 def normalize_header_html(
     header_html: str,
     *,
@@ -343,37 +529,71 @@ def normalize_header_html(
     header_html = remove_asset_tag(
         header_html,
         tag_name="link",
-        asset_fragment="dist/css/main.css",
+        asset_fragment=(
+            "dist/css/main.css"
+        ),
     )
     header_html = re.sub(
         r"<title>.*?</title>",
         f"<title>{WP_TITLE}</title>",
         header_html,
         count=1,
-        flags=re.IGNORECASE | re.DOTALL,
+        flags=(
+            re.IGNORECASE
+            | re.DOTALL
+        ),
     )
     header_html = re.sub(
         r"<body\b[^>]*>",
-        f"<body <?php body_class('t-{template_name}'); ?>>",
+        (
+            "<body "
+            f"<?php body_class('t-{template_name}'); ?>"
+            ">"
+        ),
         header_html,
         count=1,
         flags=re.IGNORECASE,
     )
-    header_html = re.sub(r'\s+aria-current="page"', "", header_html, flags=re.IGNORECASE)
-    header_html = remove_class_token(header_html, "is-current")
-    header_html = re.sub(r"(<a\b[^>]*?)\s+>", r"\1>", header_html, flags=re.IGNORECASE)
-    header_html = rewrite_site_title_link(header_html)
-    header_html = rewrite_href_and_src_paths(header_html, home_url_map=home_url_map)
+    header_html = rewrite_site_title_link(
+        header_html
+    )
+    header_html = (
+        rewrite_navigation_current_state(
+            header_html,
+            home_url_map=home_url_map,
+        )
+    )
+    header_html = rewrite_href_and_src_paths(
+        header_html,
+        home_url_map=home_url_map,
+    )
+
     return header_html
 
 
-def normalize_footer_html(footer_html: str, *, home_url_map: dict[str, str]) -> str:
+def normalize_footer_html(
+    footer_html: str,
+    *,
+    home_url_map: dict[str, str],
+) -> str:
     footer_html = remove_asset_tag(
         footer_html,
         tag_name="script",
-        asset_fragment="dist/js/core/app.js",
+        asset_fragment=(
+            "dist/js/core/app.js"
+        ),
     )
-    return rewrite_href_and_src_paths(footer_html, home_url_map=home_url_map)
+    footer_html = (
+        rewrite_navigation_current_state(
+            footer_html,
+            home_url_map=home_url_map,
+        )
+    )
+
+    return rewrite_href_and_src_paths(
+        footer_html,
+        home_url_map=home_url_map,
+    )
 
 
 def normalize_main_html(main_html: str, *, home_url_map: dict[str, str]) -> str:
