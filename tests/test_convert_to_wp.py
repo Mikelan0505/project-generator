@@ -217,6 +217,69 @@ class ConversionSafetyTests(unittest.TestCase):
         )
         self.assert_no_transaction_directories()
 
+    def test_page_class_for_html_name(self) -> None:
+        self.assertEqual(
+            "p-home",
+            convert_to_wp.page_class_for_html_name(
+                "index.html"
+            ),
+        )
+        self.assertEqual(
+            "p-about",
+            convert_to_wp.page_class_for_html_name(
+                "about.html"
+            ),
+        )
+        self.assertEqual(
+            "p-products",
+            convert_to_wp.page_class_for_html_name(
+                "products.html"
+            ),
+        )
+
+    def test_generated_pages_register_expected_body_classes(
+        self,
+    ) -> None:
+        convert_to_wp.convert_project(
+            base_dir=self.base_dir,
+            project_name="sample",
+            template_name="website",
+        )
+
+        expected_classes = {
+            "front-page.php": "p-home",
+            "page-about.php": "p-about",
+            "page-service.php": "p-service",
+            "page-contact.php": "p-contact",
+        }
+
+        for php_name, expected_class in (
+            expected_classes.items()
+        ):
+            with self.subTest(php_name=php_name):
+                php = (
+                    self.project_dir
+                    / php_name
+                ).read_text(encoding="utf-8")
+
+                self.assertIn(
+                    (
+                        "$classes[] = "
+                        f"'{expected_class}';"
+                    ),
+                    php,
+                )
+
+        header_php = (
+            self.project_dir
+            / "header.php"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn(
+            "body_class('t-website')",
+            header_php,
+        )
+
     def test_missing_stub_preserves_project(self) -> None:
         (
             self.base_dir

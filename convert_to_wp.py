@@ -392,8 +392,40 @@ def split_document(html: str) -> tuple[str, str, str]:
     return header_html, main_html, footer_html
 
 
-def build_page_php(main_html: str) -> str:
-    return f"{GET_HEADER}\n\n{main_html.strip()}\n\n{GET_FOOTER}\n"
+def page_class_for_html_name(html_name: str) -> str:
+    page_stem = Path(html_name).stem
+    return (
+        "p-home"
+        if page_stem == "index"
+        else f"p-{page_stem}"
+    )
+
+
+def build_page_php(
+    main_html: str,
+    *,
+    page_class: str,
+) -> str:
+    body_class_filter = dedent(
+        f"""\
+        <?php
+        add_filter(
+          'body_class',
+          static function ( $classes ) {{
+            $classes[] = '{page_class}';
+            return $classes;
+          }}
+        );
+        ?>
+        """
+    ).strip()
+
+    return (
+        f"{body_class_filter}\n"
+        f"{GET_HEADER}\n\n"
+        f"{main_html.strip()}\n\n"
+        f"{GET_FOOTER}\n"
+    )
 
 
 def build_functions_php() -> str:
@@ -508,7 +540,12 @@ def generate_wordpress_files(
         )
         write_text(
             project_dir / php_name,
-            build_page_php(main_html),
+            build_page_php(
+                main_html,
+                page_class=page_class_for_html_name(
+                    html_name
+                ),
+            ),
         )
         generated_files.append(php_name)
 
