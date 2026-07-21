@@ -6,6 +6,7 @@ import shutil
 import sys
 from pathlib import Path
 from textwrap import dedent
+from uuid import uuid4
 
 
 TEMPLATE_CONFIGS = {
@@ -49,6 +50,23 @@ TEMPLATE_CONFIGS = {
     },
 }
 SUPPORTED_TEMPLATES = tuple(TEMPLATE_CONFIGS)
+BASE_GENERATED_FILES = (
+    "style.css",
+    "index.php",
+    "functions.php",
+    "header.php",
+    "footer.php",
+)
+ALL_GENERATED_FILES = tuple(
+    dict.fromkeys(
+        BASE_GENERATED_FILES
+        + tuple(
+            php_name
+            for config in TEMPLATE_CONFIGS.values()
+            for php_name in config["html_to_php_map"].values()
+        )
+    )
+)
 GET_HEADER = "<?php get_header(); ?>"
 GET_FOOTER = "<?php get_footer(); ?>"
 WP_HEAD = "<?php wp_head(); ?>"
@@ -121,6 +139,11 @@ def parse_args() -> argparse.Namespace:
         default="website",
         choices=SUPPORTED_TEMPLATES,
         help="現在は website / shop / lp に対応しています。",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="既存のgenerator管理WordPressファイルを置換します。",
     )
     return parser.parse_args()
 
@@ -355,48 +378,196 @@ def build_functions_php() -> str:
     return FUNCTIONS_PHP_TEMPLATE
 
 
-def convert_project(*, base_dir: Path, project_name: str, template_name: str) -> tuple[Path, list[str]]:
-    if template_name not in TEMPLATE_CONFIGS:
-        raise ConversionError("現在は `website` `shop` `lp` テンプレのみ変換できます。")
+def find_existing_generated_files(project_dir: Path) -> list[str]:
+    return [
+        name
+        for name in ALL_GENERATED_FILES
+        if (project_dir / name).exists()
+    ]
 
+
+def remove_generated_files(project_dir: Path) -> None:
+    for name in ALL_GENERATED_FILES:
+        path = project_dir / name
+
+        if not path.exists():
+            continue
+
+        if not path.is_file():
+            raise ConversionError(
+                f"generator管理ファイルと同名のディレクトリがあります: {path}"
+            )
+
+        path.unlink()
+
+
+def replace_directory_transactionally(
+    staging_dir: Path,
+    destination_dir: Path,
+) -> None:
+    backup_dir = destination_dir.parent / (
+        f".{destination_dir.name}.wp-backup-{uuid4().hex}"
+    )
+
+    destination_dir.rename(backup_dir)
+
+    try:
+        staging_dir.rename(destination_dir)
+    except Exception:
+        if backup_dir.exists() and not destination_dir.exists():
+            backup_dir.rename(destination_dir)
+        raise
+    else:
+        if backup_dir.exists():
+            shutil.rmtree(backup_dir, ignore_errors=True)
+
+
+def generate_wordpress_files(
+    *,
+    base_dir: Path,
+    project_dir: Path,
+    project_name: str,
+    template_name: str,
+) -> list[str]:
     config = TEMPLATE_CONFIGS[template_name]
     html_to_php_map = config["html_to_php_map"]
     home_url_map = config["home_url_map"]
 
-    project_dir = base_dir / "outputs" / sanitize_project_name(project_name)
-    if not project_dir.exists() or not project_dir.is_dir():
-        raise ConversionError(f"対象案件フォルダが見つかりません: {project_dir}")
-
-    missing_files = [name for name in html_to_php_map if not (project_dir / name).exists()]
-    if missing_files:
-        joined = ", ".join(missing_files)
-        raise ConversionError(f"必要な HTML が不足しています: {joined}")
-
-    header_html, _, footer_html = split_document(read_text(project_dir / "index.html"))
+    header_html, _, footer_html = split_document(
+        read_text(project_dir / "index.html")
+    )
     header_html = normalize_header_html(
         header_html,
         template_name=template_name,
         home_url_map=home_url_map,
     )
-    footer_html = normalize_footer_html(footer_html, home_url_map=home_url_map)
-    header_html, footer_html = ensure_wp_hooks(header_html, footer_html)
+    footer_html = normalize_footer_html(
+        footer_html,
+        home_url_map=home_url_map,
+    )
+    header_html, footer_html = ensure_wp_hooks(
+        header_html,
+        footer_html,
+    )
 
-    write_text(project_dir / "functions.php", build_functions_php())
-    write_text(project_dir / "header.php", header_html)
-    write_text(project_dir / "footer.php", footer_html)
+    write_text(
+        project_dir / "functions.php",
+        build_functions_php(),
+    )
+    write_text(
+        project_dir / "header.php",
+        header_html,
+    )
+    write_text(
+        project_dir / "footer.php",
+        footer_html,
+    )
 
     generated_files = generate_wp_stub_files(
         base_dir=base_dir,
         project_dir=project_dir,
         project_name=project_name,
     )
-    generated_files.extend(["functions.php", "header.php", "footer.php"])
+    generated_files.extend(
+        [
+            "functions.php",
+            "header.php",
+            "footer.php",
+        ]
+    )
 
     for html_name, php_name in html_to_php_map.items():
-        _, main_html, _ = split_document(read_text(project_dir / html_name))
-        main_html = normalize_main_html(main_html, home_url_map=home_url_map)
-        write_text(project_dir / php_name, build_page_php(main_html))
+        _, main_html, _ = split_document(
+            read_text(project_dir / html_name)
+        )
+        main_html = normalize_main_html(
+            main_html,
+            home_url_map=home_url_map,
+        )
+        write_text(
+            project_dir / php_name,
+            build_page_php(main_html),
+        )
         generated_files.append(php_name)
+
+    return generated_files
+
+
+def convert_project(
+    *,
+    base_dir: Path,
+    project_name: str,
+    template_name: str,
+    force: bool = False,
+) -> tuple[Path, list[str]]:
+    if template_name not in TEMPLATE_CONFIGS:
+        raise ConversionError(
+            "現在は `website` `shop` `lp` テンプレのみ変換できます。"
+        )
+
+    config = TEMPLATE_CONFIGS[template_name]
+    html_to_php_map = config["html_to_php_map"]
+
+    project_dir = (
+        base_dir
+        / "outputs"
+        / sanitize_project_name(project_name)
+    )
+
+    if not project_dir.exists() or not project_dir.is_dir():
+        raise ConversionError(
+            f"対象案件フォルダが見つかりません: {project_dir}"
+        )
+
+    missing_files = [
+        name
+        for name in html_to_php_map
+        if not (project_dir / name).is_file()
+    ]
+
+    if missing_files:
+        joined = ", ".join(missing_files)
+        raise ConversionError(
+            f"必要な HTML が不足しています: {joined}"
+        )
+
+    existing_files = find_existing_generated_files(project_dir)
+
+    if existing_files and not force:
+        joined = ", ".join(existing_files)
+        raise ConversionError(
+            "generator管理WordPressファイルが既に存在します: "
+            f"{joined}。置換する場合は `--force` を指定してください。"
+        )
+
+    staging_dir = project_dir.parent / (
+        f".{project_dir.name}.wp-tmp-{uuid4().hex}"
+    )
+
+    try:
+        shutil.copytree(
+            project_dir,
+            staging_dir,
+        )
+        remove_generated_files(staging_dir)
+
+        generated_files = generate_wordpress_files(
+            base_dir=base_dir,
+            project_dir=staging_dir,
+            project_name=project_name,
+            template_name=template_name,
+        )
+
+        replace_directory_transactionally(
+            staging_dir,
+            project_dir,
+        )
+    finally:
+        if staging_dir.exists():
+            shutil.rmtree(
+                staging_dir,
+                ignore_errors=True,
+            )
 
     return project_dir, generated_files
 
@@ -410,8 +581,9 @@ def main() -> None:
             base_dir=base_dir,
             project_name=args.project,
             template_name=args.template,
+            force=args.force,
         )
-    except ConversionError as error:
+    except (ConversionError, OSError) as error:
         print(error)
         raise SystemExit(1) from error
 
