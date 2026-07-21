@@ -12,5 +12,14 @@
     ".js-nav-overlay",
     ".js-reveal",
     "data-open"
+  ],
+  "distTreeSha256": "17b1119e2ff546b46998a17106ee826fe56ea5d695967128b4448160f3e8e11c",
+  "requiredAssetSha256": {
+    "dist/css/main.css": "f009c02c1ac5e89da3c493ae6422fa6075c06f028c612f20fd69b3b12167a419",
+    "dist/js/core/app.js": "0cca03d18ee823a86beb7ce4cdb3abe0cecea00f5fcde60667529e1a928bcb6c"
+  },
+  "copiedDistRoots": [
+    "dist/css",
+    "dist/js"
   ]
 }
