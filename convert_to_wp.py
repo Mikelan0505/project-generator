@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import shutil
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from textwrap import dedent
 from uuid import uuid4
+
+from generation_manifest import sha256_file, utc_timestamp
 
 from filesystem_safety import rename_with_retry
 
@@ -73,6 +76,13 @@ ALL_GENERATED_FILES = tuple(
             for php_name in config["html_to_php_map"].values()
         )
     )
+)
+
+WP_OWNERSHIP_MANIFEST_FILENAME = (
+    ".project-generator-wordpress.json"
+)
+WP_OWNERSHIP_MANIFEST_KIND = (
+    "project-generator-wordpress-ownership"
 )
 GET_HEADER = "<?php get_header(); ?>"
 GET_FOOTER = "<?php get_footer(); ?>"
@@ -432,7 +442,206 @@ def build_functions_php() -> str:
     return FUNCTIONS_PHP_TEMPLATE
 
 
-def find_existing_generated_files(project_dir: Path) -> list[str]:
+def ownership_manifest_path(
+    project_dir: Path,
+) -> Path:
+    return (
+        project_dir
+        / WP_OWNERSHIP_MANIFEST_FILENAME
+    )
+
+
+def normalize_owned_generated_path(
+    raw_path: object,
+) -> str:
+    if (
+        not isinstance(raw_path, str)
+        or not raw_path.strip()
+    ):
+        raise ConversionError(
+            "WordPress所有権manifestの"
+            "pathが不正です。"
+        )
+
+    normalized = (
+        raw_path.strip()
+        .replace("\\", "/")
+    )
+    path = PurePosixPath(
+        normalized
+    )
+
+    if (
+        path.is_absolute()
+        or len(path.parts) != 1
+        or path.parts[0]
+        in {"", ".", ".."}
+        or normalized
+        not in ALL_GENERATED_FILES
+    ):
+        raise ConversionError(
+            "WordPress所有権manifestの"
+            "pathがgenerator管理範囲外です: "
+            f"{normalized}"
+        )
+
+    return normalized
+
+
+def is_sha256(value: object) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 64
+        and all(
+            character
+            in "0123456789abcdef"
+            for character in value
+        )
+    )
+
+
+def read_wordpress_ownership_manifest(
+    project_dir: Path,
+) -> dict | None:
+    manifest_path = (
+        ownership_manifest_path(
+            project_dir
+        )
+    )
+
+    if not manifest_path.exists():
+        return None
+
+    if not manifest_path.is_file():
+        raise ConversionError(
+            "WordPress所有権manifestが"
+            "ファイルではありません: "
+            f"{manifest_path}"
+        )
+
+    try:
+        data = json.loads(
+            manifest_path.read_text(
+                encoding="utf-8"
+            )
+        )
+    except (
+        OSError,
+        json.JSONDecodeError,
+    ) as error:
+        raise ConversionError(
+            "WordPress所有権manifestを"
+            f"読み込めません: {error}"
+        ) from error
+
+    if not isinstance(data, dict):
+        raise ConversionError(
+            "WordPress所有権manifestの"
+            "ルートはobjectである必要が"
+            "あります。"
+        )
+
+    if data.get("schemaVersion") != 1:
+        raise ConversionError(
+            "未対応のWordPress所有権"
+            "manifest schemaVersionです。"
+        )
+
+    if (
+        data.get("kind")
+        != WP_OWNERSHIP_MANIFEST_KIND
+    ):
+        raise ConversionError(
+            "WordPress所有権manifestの"
+            "kindが不正です。"
+        )
+
+    template_name = data.get(
+        "template"
+    )
+
+    if (
+        not isinstance(template_name, str)
+        or template_name
+        not in SUPPORTED_TEMPLATES
+    ):
+        raise ConversionError(
+            "WordPress所有権manifestの"
+            "templateが不正です。"
+        )
+
+    raw_records = data.get(
+        "generatedFiles"
+    )
+
+    if not isinstance(
+        raw_records,
+        list,
+    ):
+        raise ConversionError(
+            "WordPress所有権manifestの"
+            "generatedFilesは配列である"
+            "必要があります。"
+        )
+
+    normalized_records = []
+    seen_paths: set[str] = set()
+
+    for raw_record in raw_records:
+        if not isinstance(
+            raw_record,
+            dict,
+        ):
+            raise ConversionError(
+                "WordPress所有権manifestの"
+                "generatedFiles要素が"
+                "不正です。"
+            )
+
+        path = (
+            normalize_owned_generated_path(
+                raw_record.get("path")
+            )
+        )
+        file_hash = raw_record.get(
+            "sha256"
+        )
+
+        if not is_sha256(file_hash):
+            raise ConversionError(
+                "WordPress所有権manifestの"
+                f"SHA-256が不正です: {path}"
+            )
+
+        if path in seen_paths:
+            raise ConversionError(
+                "WordPress所有権manifestに"
+                f"重複pathがあります: {path}"
+            )
+
+        seen_paths.add(path)
+        normalized_records.append(
+            {
+                "path": path,
+                "sha256": file_hash,
+            }
+        )
+
+    return {
+        "schemaVersion": 1,
+        "kind": (
+            WP_OWNERSHIP_MANIFEST_KIND
+        ),
+        "template": template_name,
+        "generatedFiles": (
+            normalized_records
+        ),
+    }
+
+
+def find_existing_generated_files(
+    project_dir: Path,
+) -> list[str]:
     return [
         name
         for name in ALL_GENERATED_FILES
@@ -440,19 +649,189 @@ def find_existing_generated_files(project_dir: Path) -> list[str]:
     ]
 
 
-def remove_generated_files(project_dir: Path) -> None:
-    for name in ALL_GENERATED_FILES:
-        path = project_dir / name
+def validate_wordpress_ownership(
+    project_dir: Path,
+    ownership_manifest: dict,
+) -> list[str]:
+    records = (
+        ownership_manifest[
+            "generatedFiles"
+        ]
+    )
+
+    owned_hashes = {
+        record["path"]: record["sha256"]
+        for record in records
+    }
+
+    existing_files = (
+        find_existing_generated_files(
+            project_dir
+        )
+    )
+
+    untracked_files = sorted(
+        set(existing_files)
+        - set(owned_hashes)
+    )
+
+    if untracked_files:
+        raise ConversionError(
+            "generator所有権を確認できない"
+            "WordPressファイルがあります。"
+            "`--force`でも上書き・削除"
+            "できません: "
+            + ", ".join(untracked_files)
+        )
+
+    for path, expected_hash in (
+        owned_hashes.items()
+    ):
+        file_path = project_dir / path
+
+        if not file_path.exists():
+            continue
+
+        if not file_path.is_file():
+            raise ConversionError(
+                "generator所有ファイルと"
+                "同名のディレクトリが"
+                f"あります: {file_path}"
+            )
+
+        actual_hash = sha256_file(
+            file_path
+        )
+
+        if actual_hash != expected_hash:
+            raise ConversionError(
+                "generator生成後に変更された"
+                "WordPressファイルがあります。"
+                "`--force`でも上書き・削除"
+                "できません。"
+                f" path={path}"
+                f" expected={expected_hash}"
+                f" actual={actual_hash}"
+            )
+
+    return sorted(
+        owned_hashes
+    )
+
+
+def remove_generated_files(
+    project_dir: Path,
+    owned_files: list[str],
+) -> None:
+    for name in owned_files:
+        normalized = (
+            normalize_owned_generated_path(
+                name
+            )
+        )
+        path = project_dir / normalized
 
         if not path.exists():
             continue
 
         if not path.is_file():
             raise ConversionError(
-                f"generator管理ファイルと同名のディレクトリがあります: {path}"
+                "generator所有ファイルと"
+                "同名のディレクトリが"
+                f"あります: {path}"
             )
 
         path.unlink()
+
+    manifest_path = (
+        ownership_manifest_path(
+            project_dir
+        )
+    )
+
+    if manifest_path.exists():
+        if not manifest_path.is_file():
+            raise ConversionError(
+                "WordPress所有権manifestと"
+                "同名のディレクトリが"
+                f"あります: {manifest_path}"
+            )
+
+        manifest_path.unlink()
+
+
+def build_wordpress_ownership_records(
+    project_dir: Path,
+    generated_files: list[str],
+) -> list[dict[str, str]]:
+    normalized_files = sorted(
+        dict.fromkeys(
+            normalize_owned_generated_path(
+                name
+            )
+            for name in generated_files
+        )
+    )
+
+    records = []
+
+    for name in normalized_files:
+        path = project_dir / name
+
+        if not path.is_file():
+            raise ConversionError(
+                "所有権manifestへ記録する"
+                "生成ファイルがありません: "
+                f"{path}"
+            )
+
+        records.append(
+            {
+                "path": name,
+                "sha256": sha256_file(
+                    path
+                ),
+            }
+        )
+
+    return records
+
+
+def write_wordpress_ownership_manifest(
+    *,
+    project_dir: Path,
+    template_name: str,
+    generated_files: list[str],
+) -> dict:
+    manifest = {
+        "schemaVersion": 1,
+        "kind": (
+            WP_OWNERSHIP_MANIFEST_KIND
+        ),
+        "template": template_name,
+        "updatedAt": utc_timestamp(),
+        "generatedFiles": (
+            build_wordpress_ownership_records(
+                project_dir,
+                generated_files,
+            )
+        ),
+    }
+
+    ownership_manifest_path(
+        project_dir
+    ).write_text(
+        json.dumps(
+            manifest,
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    return manifest
 
 
 def replace_directory_transactionally(
@@ -561,46 +940,113 @@ def convert_project(
 ) -> tuple[Path, list[str]]:
     if template_name not in TEMPLATE_CONFIGS:
         raise ConversionError(
-            "現在は `website` `shop` `lp` テンプレのみ変換できます。"
+            "現在は `website` `shop` `lp` "
+            "テンプレのみ変換できます。"
         )
 
-    config = TEMPLATE_CONFIGS[template_name]
-    html_to_php_map = config["html_to_php_map"]
+    config = TEMPLATE_CONFIGS[
+        template_name
+    ]
+    html_to_php_map = config[
+        "html_to_php_map"
+    ]
 
     project_dir = (
         base_dir
         / "outputs"
-        / sanitize_project_name(project_name)
+        / sanitize_project_name(
+            project_name
+        )
     )
 
-    if not project_dir.exists() or not project_dir.is_dir():
+    if (
+        not project_dir.exists()
+        or not project_dir.is_dir()
+    ):
         raise ConversionError(
-            f"対象案件フォルダが見つかりません: {project_dir}"
+            "対象案件フォルダが"
+            f"見つかりません: {project_dir}"
         )
 
     missing_files = [
         name
         for name in html_to_php_map
-        if not (project_dir / name).is_file()
+        if not (
+            project_dir
+            / name
+        ).is_file()
     ]
 
     if missing_files:
-        joined = ", ".join(missing_files)
+        joined = ", ".join(
+            missing_files
+        )
         raise ConversionError(
-            f"必要な HTML が不足しています: {joined}"
+            "必要な HTML が不足しています: "
+            f"{joined}"
         )
 
-    existing_files = find_existing_generated_files(project_dir)
+    existing_files = (
+        find_existing_generated_files(
+            project_dir
+        )
+    )
+    ownership_manifest = (
+        read_wordpress_ownership_manifest(
+            project_dir
+        )
+    )
 
-    if existing_files and not force:
-        joined = ", ".join(existing_files)
-        raise ConversionError(
-            "generator管理WordPressファイルが既に存在します: "
-            f"{joined}。置換する場合は `--force` を指定してください。"
+    conversion_exists = bool(
+        existing_files
+        or ownership_manifest is not None
+    )
+
+    if conversion_exists and not force:
+        joined = (
+            ", ".join(existing_files)
+            if existing_files
+            else (
+                WP_OWNERSHIP_MANIFEST_FILENAME
+            )
         )
 
-    staging_dir = project_dir.parent / (
-        f".{project_dir.name}.wp-tmp-{uuid4().hex}"
+        raise ConversionError(
+            "WordPress変換済み、または"
+            "generator管理名のファイルが"
+            f"既に存在します: {joined}。"
+            "再変換する場合は `--force` を"
+            "指定してください。"
+        )
+
+    owned_files: list[str] = []
+
+    if force and conversion_exists:
+        if ownership_manifest is None:
+            raise ConversionError(
+                "既存WordPressファイルの"
+                "generator所有権を確認できる"
+                "manifestがありません。"
+                "`--force`でも上書き・削除"
+                "できません: "
+                + ", ".join(
+                    existing_files
+                )
+            )
+
+        owned_files = (
+            validate_wordpress_ownership(
+                project_dir,
+                ownership_manifest,
+            )
+        )
+
+    staging_dir = (
+        project_dir.parent
+        / (
+            f".{project_dir.name}"
+            f".wp-tmp-{uuid4().hex}"
+        )
     )
 
     try:
@@ -608,13 +1054,25 @@ def convert_project(
             project_dir,
             staging_dir,
         )
-        remove_generated_files(staging_dir)
 
-        generated_files = generate_wordpress_files(
-            base_dir=base_dir,
+        remove_generated_files(
+            staging_dir,
+            owned_files,
+        )
+
+        generated_files = (
+            generate_wordpress_files(
+                base_dir=base_dir,
+                project_dir=staging_dir,
+                project_name=project_name,
+                template_name=template_name,
+            )
+        )
+
+        write_wordpress_ownership_manifest(
             project_dir=staging_dir,
-            project_name=project_name,
             template_name=template_name,
+            generated_files=generated_files,
         )
 
         replace_directory_transactionally(

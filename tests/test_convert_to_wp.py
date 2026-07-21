@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -98,7 +99,46 @@ class ConversionSafetyTests(unittest.TestCase):
 
         self.assertEqual([], leftovers)
 
-    def test_initial_conversion_succeeds_without_force(self) -> None:
+    def ownership_manifest_path(
+        self,
+    ) -> Path:
+        return (
+            self.project_dir
+            / (
+                convert_to_wp
+                .WP_OWNERSHIP_MANIFEST_FILENAME
+            )
+        )
+
+    def read_ownership_manifest(
+        self,
+    ) -> dict:
+        return json.loads(
+            self.ownership_manifest_path()
+            .read_text(
+                encoding="utf-8"
+            )
+        )
+
+    def write_ownership_manifest(
+        self,
+        manifest: dict,
+    ) -> None:
+        self.ownership_manifest_path()
+        self.ownership_manifest_path().write_text(
+            json.dumps(
+                manifest,
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+
+    def test_initial_conversion_succeeds_without_force(
+        self,
+    ) -> None:
         project_dir, generated_files = (
             convert_to_wp.convert_project(
                 base_dir=self.base_dir,
@@ -116,18 +156,73 @@ class ConversionSafetyTests(unittest.TestCase):
             generated_files,
         )
         self.assertTrue(
-            (self.project_dir / "front-page.php").is_file()
+            (
+                self.project_dir
+                / "front-page.php"
+            ).is_file()
         )
         self.assertEqual(
             "keep\n",
-            (self.project_dir / "keep.txt").read_text(
+            (
+                self.project_dir
+                / "keep.txt"
+            ).read_text(
                 encoding="utf-8"
             ),
         )
+
+        manifest = (
+            self.read_ownership_manifest()
+        )
+
+        self.assertEqual(
+            1,
+            manifest["schemaVersion"],
+        )
+        self.assertEqual(
+            (
+                convert_to_wp
+                .WP_OWNERSHIP_MANIFEST_KIND
+            ),
+            manifest["kind"],
+        )
+        self.assertEqual(
+            "website",
+            manifest["template"],
+        )
+
+        records = {
+            record["path"]:
+            record["sha256"]
+            for record
+            in manifest["generatedFiles"]
+        }
+
+        self.assertEqual(
+            set(generated_files),
+            set(records),
+        )
+
+        for path, expected_hash in (
+            records.items()
+        ):
+            self.assertEqual(
+                expected_hash,
+                convert_to_wp.sha256_file(
+                    self.project_dir
+                    / path
+                ),
+            )
+
         self.assert_no_transaction_directories()
 
-    def test_existing_generated_files_require_force(self) -> None:
-        existing_file = self.project_dir / "functions.php"
+    def test_existing_generated_files_require_force(
+        self,
+    ) -> None:
+        existing_file = (
+            self.project_dir
+            / "functions.php"
+        )
         existing_file.write_text(
             "old\n",
             encoding="utf-8",
@@ -145,21 +240,43 @@ class ConversionSafetyTests(unittest.TestCase):
 
         self.assertEqual(
             "old\n",
-            existing_file.read_text(encoding="utf-8"),
+            existing_file.read_text(
+                encoding="utf-8"
+            ),
         )
         self.assert_no_transaction_directories()
 
-    def test_force_failure_preserves_existing_project(self) -> None:
-        existing_file = self.project_dir / "functions.php"
-        existing_file.write_text(
-            "old\n",
-            encoding="utf-8",
+    def test_force_failure_preserves_existing_project(
+        self,
+    ) -> None:
+        convert_to_wp.convert_project(
+            base_dir=self.base_dir,
+            project_name="sample",
+            template_name="website",
+        )
+
+        existing_file = (
+            self.project_dir
+            / "functions.php"
+        )
+        original_content = (
+            existing_file.read_text(
+                encoding="utf-8"
+            )
+        )
+        original_manifest = (
+            self.ownership_manifest_path()
+            .read_text(
+                encoding="utf-8"
+            )
         )
 
         with patch.object(
             convert_to_wp,
             "generate_wp_stub_files",
-            side_effect=OSError("stub generation failed"),
+            side_effect=OSError(
+                "stub generation failed"
+            ),
         ):
             with self.assertRaisesRegex(
                 OSError,
@@ -173,28 +290,62 @@ class ConversionSafetyTests(unittest.TestCase):
                 )
 
         self.assertEqual(
-            "old\n",
-            existing_file.read_text(encoding="utf-8"),
+            original_content,
+            existing_file.read_text(
+                encoding="utf-8"
+            ),
+        )
+        self.assertEqual(
+            original_manifest,
+            self.ownership_manifest_path()
+            .read_text(
+                encoding="utf-8"
+            ),
         )
         self.assertEqual(
             "keep\n",
-            (self.project_dir / "keep.txt").read_text(
+            (
+                self.project_dir
+                / "keep.txt"
+            ).read_text(
                 encoding="utf-8"
             ),
         )
         self.assert_no_transaction_directories()
 
-    def test_force_success_replaces_generator_owned_files(self) -> None:
-        existing_file = self.project_dir / "functions.php"
-        stale_file = self.project_dir / "page-products.php"
+    def test_force_success_replaces_generator_owned_files(
+        self,
+    ) -> None:
+        convert_to_wp.convert_project(
+            base_dir=self.base_dir,
+            project_name="sample",
+            template_name="website",
+        )
 
-        existing_file.write_text(
-            "old\n",
-            encoding="utf-8",
+        stale_file = (
+            self.project_dir
+            / "page-products.php"
         )
         stale_file.write_text(
-            "stale\n",
+            "stale generator output\n",
             encoding="utf-8",
+        )
+
+        manifest = (
+            self.read_ownership_manifest()
+        )
+        manifest["generatedFiles"].append(
+            {
+                "path": "page-products.php",
+                "sha256": (
+                    convert_to_wp.sha256_file(
+                        stale_file
+                    )
+                ),
+            }
+        )
+        self.write_ownership_manifest(
+            manifest
         )
 
         convert_to_wp.convert_project(
@@ -204,14 +355,31 @@ class ConversionSafetyTests(unittest.TestCase):
             force=True,
         )
 
-        self.assertNotEqual(
-            "old\n",
-            existing_file.read_text(encoding="utf-8"),
+        self.assertFalse(
+            stale_file.exists()
         )
-        self.assertFalse(stale_file.exists())
+
+        refreshed_manifest = (
+            self.read_ownership_manifest()
+        )
+        refreshed_paths = {
+            record["path"]
+            for record
+            in refreshed_manifest[
+                "generatedFiles"
+            ]
+        }
+
+        self.assertNotIn(
+            "page-products.php",
+            refreshed_paths,
+        )
         self.assertEqual(
             "keep\n",
-            (self.project_dir / "keep.txt").read_text(
+            (
+                self.project_dir
+                / "keep.txt"
+            ).read_text(
                 encoding="utf-8"
             ),
         )
@@ -236,6 +404,137 @@ class ConversionSafetyTests(unittest.TestCase):
                 "products.html"
             ),
         )
+
+    def test_force_rejects_untracked_generated_filename(
+        self,
+    ) -> None:
+        existing_file = (
+            self.project_dir
+            / "functions.php"
+        )
+        existing_file.write_text(
+            "user file\n",
+            encoding="utf-8",
+        )
+
+        with self.assertRaisesRegex(
+            convert_to_wp.ConversionError,
+            "所有権",
+        ):
+            convert_to_wp.convert_project(
+                base_dir=self.base_dir,
+                project_name="sample",
+                template_name="website",
+                force=True,
+            )
+
+        self.assertEqual(
+            "user file\n",
+            existing_file.read_text(
+                encoding="utf-8"
+            ),
+        )
+        self.assertFalse(
+            self.ownership_manifest_path()
+            .exists()
+        )
+        self.assert_no_transaction_directories()
+
+    def test_force_rejects_modified_owned_file(
+        self,
+    ) -> None:
+        convert_to_wp.convert_project(
+            base_dir=self.base_dir,
+            project_name="sample",
+            template_name="website",
+        )
+
+        functions_path = (
+            self.project_dir
+            / "functions.php"
+        )
+        functions_path.write_text(
+            "<?php\n// user modification\n",
+            encoding="utf-8",
+        )
+
+        with self.assertRaisesRegex(
+            convert_to_wp.ConversionError,
+            "変更された",
+        ):
+            convert_to_wp.convert_project(
+                base_dir=self.base_dir,
+                project_name="sample",
+                template_name="website",
+                force=True,
+            )
+
+        self.assertEqual(
+            "<?php\n// user modification\n",
+            functions_path.read_text(
+                encoding="utf-8"
+            ),
+        )
+        self.assert_no_transaction_directories()
+
+    def test_force_recreates_missing_owned_file(
+        self,
+    ) -> None:
+        convert_to_wp.convert_project(
+            base_dir=self.base_dir,
+            project_name="sample",
+            template_name="website",
+        )
+
+        page_path = (
+            self.project_dir
+            / "page-about.php"
+        )
+        page_path.unlink()
+
+        convert_to_wp.convert_project(
+            base_dir=self.base_dir,
+            project_name="sample",
+            template_name="website",
+            force=True,
+        )
+
+        self.assertTrue(
+            page_path.is_file()
+        )
+        self.assert_no_transaction_directories()
+
+    def test_force_rejects_tampered_ownership_path(
+        self,
+    ) -> None:
+        convert_to_wp.convert_project(
+            base_dir=self.base_dir,
+            project_name="sample",
+            template_name="website",
+        )
+
+        manifest = (
+            self.read_ownership_manifest()
+        )
+        manifest["generatedFiles"][0][
+            "path"
+        ] = "../outside.php"
+        self.write_ownership_manifest(
+            manifest
+        )
+
+        with self.assertRaisesRegex(
+            convert_to_wp.ConversionError,
+            "管理範囲外",
+        ):
+            convert_to_wp.convert_project(
+                base_dir=self.base_dir,
+                project_name="sample",
+                template_name="website",
+                force=True,
+            )
+
+        self.assert_no_transaction_directories()
 
     def test_generated_pages_register_expected_body_classes(
         self,
