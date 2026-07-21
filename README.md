@@ -281,3 +281,100 @@ GitHub/
 - カート、決済、注文フローなどの本格EC機能
 
 必要になったら将来拡張できますが、現時点では最小構成のまま保つ方針です。
+
+## ローカル保守と安全検証
+
+このリポジトリは、生成結果だけでなく生成経路も検証対象とします。
+作業開始時には `project-generator` と `sass-starter-exiga` の両方で
+working treeがcleanであることを確認してください。
+
+### 回帰テスト
+
+正式な回帰テストコマンドは次のとおりです。
+
+    python -m unittest discover -s tests -q
+
+`python -m unittest discover`だけでは、実行位置や構成によっては
+0件実行を成功と誤認する可能性があります。
+
+生成PHPの構文検査にはPHP CLIを使用します。PHPがPATHにない場合は、
+`PROJECT_GENERATOR_PHP`へ実行ファイルの絶対パスを設定します。
+
+    $env:PROJECT_GENERATOR_PHP = "C:\path\to\php.exe"
+    python -m unittest discover -s tests -q
+    Remove-Item Env:PROJECT_GENERATOR_PHP
+
+### starter契約の更新手順
+
+`sass-starter-exiga`を変更した場合は、次の順序を守ります。
+
+1. starter側でbuildとbrowser smokeを完了する。
+2. starter側をcommitし、working treeをcleanにする。
+3. `starter-contract.json`の`requiredCommit`を新しいHEADへ更新する。
+4. コピー対象の`dist/css`と`dist/js`から`distTreeSha256`を更新する。
+5. `requiredAssetSha256`を実ファイルから更新する。
+6. runtime selectorを変更した場合だけ`requiredRuntimeTokens`を更新する。
+7. starter契約検査と全回帰テストを実行する。
+
+runtime tokenは、コピー対象JavaScript内のコメントではない
+静的文字列リテラルと完全一致する必要があります。
+部分文字列やコメント内だけの記述では契約を満たしません。
+
+### 案件manifest
+
+`project-manifest.json`には、次の追跡情報を記録します。
+
+- 案件表示名とslug
+- 使用template
+- generator commit
+- starter commit
+- コピー対象dist treeのSHA-256
+- 必須assetのSHA-256
+- 作成日時と更新日時
+
+`--refresh-dist`では、案件表示名と`createdAt`を保持します。
+distとmanifestは一組としてtransactionalに交換し、片方だけが
+新しくなる状態を許可しません。
+
+### WordPress生成物の所有権
+
+`.project-generator-wordpress.json`には、generatorが管理する
+WordPress生成ファイルと各SHA-256を記録します。
+
+`convert_to_wp.py --force`で置換できるのは、所有権manifestに記録され、
+かつ生成後に変更されていないファイルだけです。
+
+次のファイルは自動置換しません。
+
+- ユーザーが編集したファイル
+- 所有権manifestに記録されていない同名ファイル
+- 記録済みSHA-256と現在値が一致しないファイル
+
+WordPress版のheader/footer navは、`is_front_page()`と`is_page()`から
+`is-current`と`aria-current="page"`を動的に出力します。
+
+### transaction残骸
+
+`--refresh-dist`は、未解決のtransaction残骸を検出した場合に停止します。
+
+対象例は次のとおりです。
+
+- `.dist.tmp-*`
+- `.dist.backup-*`
+- `.dist.failed-*`
+- `.project-manifest.json.tmp-*`
+- `.project-manifest.json.backup-*`
+- `.project-manifest.json.failed-*`
+
+WordPress変換では、案件ディレクトリの隣に次の残骸が残る場合があります。
+
+- `.案件名.wp-tmp-*`
+- `.案件名.wp-backup-*`
+
+残骸を見つけても、内容を確認する前に削除してはいけません。
+live、backup、failed、tmpの内容と更新時刻を比較し、旧データと新データを
+判別してください。
+
+liveが欠落し、backupが旧案件一式であると確認できた場合だけ、
+backupを元の案件名へ戻します。その後に全回帰テスト、PHP lint、
+`git status`を確認してから不要な残骸を削除します。

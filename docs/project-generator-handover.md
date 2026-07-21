@@ -364,3 +364,51 @@ outputs/<project-name>/
 - テンプレごとの小さな派生追加
 
 ただし、テンプレを増やしすぎる前に「実務で差し替えやすい最小構成」の思想を崩さないことを優先します。
+
+## 現在の安全機構
+
+### starter契約
+
+- starterのHEADが`starter-contract.json`の`requiredCommit`と一致する。
+- starterのworking treeがcleanである。
+- コピー対象dist treeのSHA-256が一致する。
+- 必須assetごとのSHA-256が一致する。
+- runtime tokenがJavaScriptの静的文字列リテラルとして完全一致する。
+- コメント内だけ、または長い文字列の一部分だけでは一致とみなさない。
+- `dist`外へのtraversalを含むasset pathは拒否する。
+
+### 案件生成とrefresh
+
+- 新規生成は一時ディレクトリで完了してからliveへ交換する。
+- `--refresh-dist`はdistと`project-manifest.json`を一組として交換する。
+- refreshでも案件表示名と`createdAt`を保持する。
+- rename失敗時はrollbackを試みる。
+- rollbackできない場合はbackupとfailedを残し、次回処理を停止する。
+- unresolvedな`.dist.*`と`.project-manifest.json.*`残骸がある状態では
+  refreshを開始しない。
+
+### WordPress変換
+
+- `.project-generator-wordpress.json`で生成ファイルの所有権とSHA-256を管理する。
+- `--force`でもユーザー編集済みファイルは置換しない。
+- 所有権を確認できない既存同名ファイルは置換しない。
+- 変換処理は一時ディレクトリを使用し、失敗時に元案件を保持する。
+- header/footer navの現在ページ状態は`is_front_page()`と`is_page()`で
+  動的に生成する。
+- `is-current`と`aria-current="page"`は現在ページだけに付与する。
+
+### 検証コマンド
+
+正式な回帰テストコマンドは次のとおりです。
+
+    python -m unittest discover -s tests -q
+
+PHP CLIがPATHにない場合は、`PROJECT_GENERATOR_PHP`へ実行ファイルを指定します。
+生成されたWordPress PHPは`php -l`で構文検査します。
+
+### 障害時の扱い
+
+- transaction残骸は内容を確認するまで削除しない。
+- liveが欠落している場合でも、backupが旧案件一式であると確認するまで戻さない。
+- 復旧後は全テスト、PHP lint、`git diff --check`、`git status`を確認する。
+- 復旧と機能変更を同じcommitに混在させない。
