@@ -10,6 +10,13 @@ from uuid import uuid4
 
 from filesystem_safety import rename_with_retry
 
+from generation_manifest import (
+    GenerationManifestError,
+    MANIFEST_FILENAME,
+    read_generation_manifest,
+    write_generation_manifest,
+)
+
 from starter_contract import (
     StarterContractError,
     contract_path_for,
@@ -341,25 +348,211 @@ def replace_directory_transactionally(
             shutil.rmtree(backup_dir, ignore_errors=True)
 
 
-def refresh_dist(*, base_dir: Path, project_name: str) -> Path:
-    outputs_dir = base_dir / "outputs"
-    output_dir = outputs_dir / sanitize_project_name(project_name)
 
-    if not output_dir.exists() or not output_dir.is_dir():
-        raise FileNotFoundError(f"対象案件フォルダが見つかりません: {output_dir}")
+def remove_path_quietly(path: Path) -> None:
+    if not path.exists():
+        return
 
-    dist_root = resolve_exiga_dist(base_dir)
-    staging_dir = output_dir / f".dist.tmp-{uuid4().hex}"
+    if path.is_dir():
+        shutil.rmtree(
+            path,
+            ignore_errors=True,
+        )
+        return
 
     try:
-        copy_exiga_dist(dist_root, staging_dir)
-        replace_directory_transactionally(
-            staging_dir,
-            output_dir / "dist",
+        path.unlink()
+    except OSError:
+        pass
+
+
+def replace_dist_and_manifest_transactionally(
+    *,
+    staging_dist_dir: Path,
+    staging_manifest_path: Path,
+    output_dir: Path,
+) -> None:
+    destination_dist_dir = output_dir / "dist"
+    destination_manifest_path = (
+        output_dir
+        / MANIFEST_FILENAME
+    )
+
+    if (
+        destination_dist_dir.exists()
+        and not destination_dist_dir.is_dir()
+    ):
+        raise FileExistsError(
+            "既存distがディレクトリではありません: "
+            f"{destination_dist_dir}"
+        )
+
+    if (
+        destination_manifest_path.exists()
+        and not destination_manifest_path.is_file()
+    ):
+        raise FileExistsError(
+            "既存manifestがファイルではありません: "
+            f"{destination_manifest_path}"
+        )
+
+    transaction_id = uuid4().hex
+
+    backup_dist_dir = output_dir / (
+        f".dist.backup-{transaction_id}"
+    )
+    backup_manifest_path = output_dir / (
+        f".{MANIFEST_FILENAME}.backup-"
+        f"{transaction_id}"
+    )
+    failed_dist_dir = output_dir / (
+        f".dist.failed-{transaction_id}"
+    )
+    failed_manifest_path = output_dir / (
+        f".{MANIFEST_FILENAME}.failed-"
+        f"{transaction_id}"
+    )
+
+    had_dist = destination_dist_dir.exists()
+    had_manifest = (
+        destination_manifest_path.exists()
+    )
+
+    if had_dist:
+        rename_with_retry(
+            destination_dist_dir,
+            backup_dist_dir,
+        )
+
+    if had_manifest:
+        rename_with_retry(
+            destination_manifest_path,
+            backup_manifest_path,
+        )
+
+    try:
+        rename_with_retry(
+            staging_dist_dir,
+            destination_dist_dir,
+        )
+        rename_with_retry(
+            staging_manifest_path,
+            destination_manifest_path,
+        )
+    except Exception:
+        try:
+            if destination_manifest_path.exists():
+                rename_with_retry(
+                    destination_manifest_path,
+                    failed_manifest_path,
+                )
+
+            if destination_dist_dir.exists():
+                rename_with_retry(
+                    destination_dist_dir,
+                    failed_dist_dir,
+                )
+
+            if backup_dist_dir.exists():
+                rename_with_retry(
+                    backup_dist_dir,
+                    destination_dist_dir,
+                )
+
+            if backup_manifest_path.exists():
+                rename_with_retry(
+                    backup_manifest_path,
+                    destination_manifest_path,
+                )
+        finally:
+            remove_path_quietly(
+                failed_dist_dir
+            )
+            remove_path_quietly(
+                failed_manifest_path
+            )
+
+        raise
+    else:
+        remove_path_quietly(
+            backup_dist_dir
+        )
+        remove_path_quietly(
+            backup_manifest_path
+        )
+
+
+
+def refresh_dist(
+    *,
+    base_dir: Path,
+    project_name: str,
+) -> Path:
+    outputs_dir = base_dir / "outputs"
+    output_dir = (
+        outputs_dir
+        / sanitize_project_name(project_name)
+    )
+
+    if (
+        not output_dir.exists()
+        or not output_dir.is_dir()
+    ):
+        raise FileNotFoundError(
+            f"対象案件フォルダが見つかりません: {output_dir}"
+        )
+
+    existing_manifest_path = (
+        output_dir
+        / MANIFEST_FILENAME
+    )
+    existing_manifest = read_generation_manifest(
+        existing_manifest_path
+    )
+
+    dist_root = resolve_exiga_dist(base_dir)
+    staging_dist_dir = output_dir / (
+        f".dist.tmp-{uuid4().hex}"
+    )
+    staging_manifest_path = output_dir / (
+        f".{MANIFEST_FILENAME}.tmp-"
+        f"{uuid4().hex}"
+    )
+
+    try:
+        copy_exiga_dist(
+            dist_root,
+            staging_dist_dir,
+        )
+
+        write_generation_manifest(
+            staging_manifest_path,
+            base_dir=base_dir,
+            starter_root=dist_root.parent,
+            dist_root=staging_dist_dir,
+            template_name=None,
+            project_name=project_name,
+            project_slug=output_dir.name,
+            generated_date=None,
+            operation="refresh-dist",
+            required_assets=REQUIRED_DIST_FILES,
+            existing_manifest=existing_manifest,
+        )
+
+        replace_dist_and_manifest_transactionally(
+            staging_dist_dir=staging_dist_dir,
+            staging_manifest_path=(
+                staging_manifest_path
+            ),
+            output_dir=output_dir,
         )
     finally:
-        if staging_dir.exists():
-            shutil.rmtree(staging_dir, ignore_errors=True)
+        remove_path_quietly(
+            staging_dist_dir
+        )
+        remove_path_quietly(
+            staging_manifest_path
+        )
 
     return output_dir
 
@@ -419,8 +612,28 @@ def create_project(
             project_name=project_name,
             generated_date=generated_date,
         )
-        copy_exiga_dist(dist_root, staging_dir / "dist")
-        replace_directory_transactionally(staging_dir, output_dir)
+        copy_exiga_dist(
+            dist_root,
+            staging_dir / "dist",
+        )
+
+        write_generation_manifest(
+            staging_dir / MANIFEST_FILENAME,
+            base_dir=base_dir,
+            starter_root=dist_root.parent,
+            dist_root=staging_dir / "dist",
+            template_name=template_name,
+            project_name=project_name,
+            project_slug=output_dir.name,
+            generated_date=generated_date,
+            operation="create",
+            required_assets=REQUIRED_DIST_FILES,
+        )
+
+        replace_directory_transactionally(
+            staging_dir,
+            output_dir,
+        )
     finally:
         if staging_dir.exists():
             shutil.rmtree(staging_dir, ignore_errors=True)
@@ -439,7 +652,7 @@ def main() -> None:
 
         try:
             output_dir = refresh_dist(base_dir=base_dir, project_name=args.project)
-        except (OSError, ValueError, StarterContractError) as error:
+        except (OSError, ValueError, StarterContractError, GenerationManifestError) as error:
             print(error)
             raise SystemExit(1) from error
 
@@ -456,7 +669,7 @@ def main() -> None:
             project_name=project_name,
             force=args.force,
         )
-    except (OSError, ValueError, StarterContractError) as error:
+    except (OSError, ValueError, StarterContractError, GenerationManifestError) as error:
         print(error)
         raise SystemExit(1) from error
 
