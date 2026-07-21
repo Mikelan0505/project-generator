@@ -6,6 +6,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 import unittest
+import re
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -324,6 +325,62 @@ class TemplateReferenceTests(unittest.TestCase):
             duplicates,
             "\n" + "\n".join(duplicates),
         )
+
+
+class TemplateAccessibilityTests(
+    unittest.TestCase
+):
+    def test_lists_and_wrapping_labels_use_valid_accessible_markup(
+        self,
+    ) -> None:
+        template_root = (
+            Path(__file__).resolve()
+            .parents[1]
+            / "templates"
+        )
+
+        ol_aria_label_pattern = re.compile(
+            r"<ol\b[^>]*\baria-label=",
+            flags=re.IGNORECASE,
+        )
+        wrapping_label_for_pattern = (
+            re.compile(
+                r"<label\b"
+                r"(?=[^>]*\bfor=)"
+                r"[^>]*>"
+                r"(?:(?!</label>).)*?"
+                r"<input\b",
+                flags=(
+                    re.IGNORECASE
+                    | re.DOTALL
+                ),
+            )
+        )
+
+        for path in sorted(
+            template_root.rglob("*.html")
+        ):
+            with self.subTest(
+                template=(
+                    path.relative_to(
+                        template_root
+                    ).as_posix()
+                )
+            ):
+                text = path.read_text(
+                    encoding="utf-8"
+                )
+
+                self.assertIsNone(
+                    ol_aria_label_pattern.search(
+                        text
+                    )
+                )
+                self.assertIsNone(
+                    wrapping_label_for_pattern.search(
+                        text
+                    )
+                )
 
 
 if __name__ == "__main__":

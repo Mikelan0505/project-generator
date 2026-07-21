@@ -28,6 +28,7 @@ from project_naming import (
     escape_project_html,
     sanitize_project_slug,
 )
+from console_safety import configure_standard_streams
 
 
 CSS_HREF = "./dist/css/main.css"
@@ -887,6 +888,7 @@ def create_project(
 
 
 def main() -> None:
+    configure_standard_streams()
     args = parse_args()
     base_dir = Path(__file__).resolve().parent
 

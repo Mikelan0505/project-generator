@@ -209,7 +209,7 @@ class GenerationManifestTests(unittest.TestCase):
 
         script.refresh_dist(
             base_dir=self.base_dir,
-            project_name="Refresh Sample",
+            project_name="Refresh-Sample",
         )
 
         refreshed_manifest = self.read_manifest(
@@ -237,6 +237,12 @@ class GenerationManifestTests(unittest.TestCase):
             refreshed_manifest[
                 "project"
             ]["template"],
+        )
+        self.assertEqual(
+            "Refresh Sample",
+            refreshed_manifest[
+                "project"
+            ]["name"],
         )
         self.assertNotEqual(
             initial_css_hash,

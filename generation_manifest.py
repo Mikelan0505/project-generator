@@ -266,12 +266,35 @@ def build_generation_manifest(
         if isinstance(previous_template, str):
             template_name = previous_template
 
+    resolved_project_name = (
+        normalize_project_display_name(
+            project_name
+        )
+    )
+
+    if (
+        operation == "refresh-dist"
+        and isinstance(previous_project, dict)
+    ):
+        previous_project_name = (
+            previous_project.get("name")
+        )
+
+        if (
+            isinstance(
+                previous_project_name,
+                str,
+            )
+            and previous_project_name.strip()
+        ):
+            resolved_project_name = (
+                previous_project_name
+            )
+
     return {
         "schemaVersion": 1,
         "project": {
-            "name": normalize_project_display_name(
-                project_name
-            ),
+            "name": resolved_project_name,
             "slug": project_slug,
             "template": template_name,
         },

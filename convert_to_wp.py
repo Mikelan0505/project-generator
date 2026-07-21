@@ -17,6 +17,7 @@ from project_naming import (
     sanitize_project_slug,
     sanitize_theme_name,
 )
+from console_safety import configure_standard_streams
 
 
 TEMPLATE_CONFIGS = {
@@ -1090,6 +1091,7 @@ def convert_project(
 
 
 def main() -> None:
+    configure_standard_streams()
     args = parse_args()
     base_dir = Path(__file__).resolve().parent
 
