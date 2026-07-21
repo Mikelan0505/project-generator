@@ -386,27 +386,47 @@ outputs/<project-name>/
 
 - 新規生成は一時ディレクトリで完了してからliveへ交換する。
 - 新規生成でもrollback二重失敗時はbackup、staging、failedを保持する。
-- unresolvedな`.案件名.tmp-*`、`.案件名.backup-*`、`.案件名.failed-*`が
-  ある状態では同名案件の生成を開始しない。
 - `--refresh-dist`はdistと`project-manifest.json`を一組として交換する。
 - refreshでも案件表示名と`createdAt`を保持する。
 - rename失敗時はrollbackを試みる。
 - rollbackできない場合はbackupとfailedを残し、次回処理を停止する。
-- unresolvedな`.dist.*`と`.project-manifest.json.*`残骸がある状態では
-  refreshを開始しない。
 
 ### WordPress変換
 
+- `project-manifest.json`を必須で読み取り、`project.template`（generation template）とrequested template（`--template`）の一致を検査する。
+- `project-manifest.json`の欠落、不正JSON、不正schema、不正な`project.template`は
+  すべて停止条件とする。
+- generation manifestを持たない旧案件は、正しいtemplateで再生成する必要がある。
+- 再変換時は`.project-generator-wordpress.json`の`template`もrequested templateと
+  一致必須とし、`--force`でもtemplate不一致を許可しない。
+- template migration機能ではなく、staging作成とswapより前にfail-closedで停止する
+  誤変換防止契約である。停止時は静的HTMLや既存案件を変更しない。
 - `.project-generator-wordpress.json`で生成ファイルの所有権とSHA-256を管理する。
 - `--force`でもユーザー編集済みファイルは置換しない。
 - 所有権を確認できない既存同名ファイルは置換しない。
 - 変換処理は一時ディレクトリを使用し、失敗時に元案件を保持する。
 - rollback二重失敗時はbackup、staging、failedと元例外・復旧例外を保持する。
-- unresolvedな`.案件名.wp-tmp-*`、`.案件名.wp-backup-*`、
-  `.案件名.wp-failed-*`がある状態では変換を開始しない。
 - header/footer navの現在ページ状態は`is_front_page()`と`is_page()`で
   動的に生成する。
 - `is-current`と`aria-current="page"`は現在ページだけに付与する。
+
+### 案件単位のcross-operation残骸検査
+
+通常生成、`--refresh-dist`、WordPress変換は、操作種別を問わず同じ案件に属する
+未解決transaction残骸を共通scannerで横断検査する。
+
+- 案件ディレクトリの隣にある`.案件名.tmp-*`、`.案件名.backup-*`、
+  `.案件名.failed-*`
+- 案件ディレクトリの隣にある`.案件名.wp-tmp-*`、`.案件名.wp-backup-*`、
+  `.案件名.wp-failed-*`
+- 案件内の`.dist.tmp-*`、`.dist.backup-*`、`.dist.failed-*`
+- 案件内の`.project-manifest.json.tmp-*`、
+  `.project-manifest.json.backup-*`、`.project-manifest.json.failed-*`
+
+別案件の残骸は対象外とする。
+対象が一件でも存在すれば、通常生成、`--refresh-dist`、WordPress変換をすべて停止する。
+残骸は自動削除しないため、内容確認と手動復旧が必要となる。
+pre-swap cleanup失敗で残ったstagingも、次回scannerの停止対象になる。
 
 ### 検証コマンド
 
@@ -419,7 +439,7 @@ PHP CLIがPATHにない場合は、`PROJECT_GENERATOR_PHP`へ実行ファイル�
 
 ### 障害時の扱い
 
-- transaction残骸は内容を確認するまで削除しない。
+- transaction残骸は内容を確認するまで手動削除しない。
 - liveが欠落している場合でも、backupが旧案件一式であると確認するまで戻さない。
 - 復旧後は全テスト、PHP lint、`git diff --check`、`git status`を確認する。
 - 復旧と機能変更を同じcommitに混在させない。

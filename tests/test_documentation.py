@@ -147,6 +147,60 @@ class DocumentationSafetyTests(
                     self.convert_spec,
                 )
 
+    def test_fail_closed_conversion_contracts_are_documented(
+        self,
+    ) -> None:
+        template_contract_markers = (
+            (
+                "`project.template`（generation template）と"
+                "requested template（`--template`）の一致"
+            ),
+            "`--force`でもtemplate不一致を許可しない",
+            "template migration機能ではなく",
+            "staging作成とswapより前",
+            "generation manifestを持たない旧案件",
+            "静的HTMLや既存案件を変更しない",
+        )
+        transaction_contract_markers = (
+            "操作種別を問わず同じ案件",
+            ".案件名.tmp-*",
+            ".案件名.wp-failed-*",
+            ".dist.tmp-*",
+            ".project-manifest.json.failed-*",
+            "別案件の残骸は対象外",
+            "残骸は自動削除しない",
+            (
+                "通常生成、`--refresh-dist`、"
+                "WordPress変換をすべて停止"
+            ),
+            "cleanup失敗で残ったstaging",
+        )
+
+        documents = (
+            (
+                "convert spec",
+                self.convert_spec,
+            ),
+            (
+                "handover",
+                self.handover,
+            ),
+        )
+
+        for document_name, document in documents:
+            for marker in (
+                *template_contract_markers,
+                *transaction_contract_markers,
+            ):
+                with self.subTest(
+                    document=document_name,
+                    marker=marker,
+                ):
+                    self.assertIn(
+                        marker,
+                        document,
+                    )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -67,17 +67,31 @@
 
 `convert_to_wp.py`は次を行う。
 
-1. 対象案件と必須HTMLを検査する。
-2. 既存WordPress生成物と所有権manifestを検査する。
-3. 案件全体を`.案件名.wp-tmp-*`へコピーする。
-4. staging内で既存のgenerator所有ファイルを除去する。
-5. `header.php`、`footer.php`、`functions.php`、各ページPHPを生成する。
-6. 生成ファイルのSHA-256を所有権manifestへ記録する。
-7. stagingとlive案件をtransactionalに交換する。
+1. 同じ案件に属する全operationのtransaction残骸を検査する。
+2. 対象案件、generation manifest、要求template、必須HTMLを検査する。
+3. 既存WordPress生成物と所有権manifestを検査する。
+4. 案件全体を`.案件名.wp-tmp-*`へコピーする。
+5. staging内で既存のgenerator所有ファイルを除去する。
+6. `header.php`、`footer.php`、`functions.php`、各ページPHPを生成する。
+7. 生成ファイルのSHA-256を所有権manifestへ記録する。
+8. stagingとlive案件をtransactionalに交換する。
 
 変換途中で失敗した場合、live案件は交換しない。
 forward swapとrollbackの両方に失敗した場合は、元例外と復旧例外を保持し、backup、staging、failedの位置を例外へ記録する。
 この状態は`DirectoryTransactionRecoveryError`として通知する。
+
+## 変換template契約
+
+WordPress変換では`project-manifest.json`を必須で読み取り、`project.template`（generation template）とrequested template（`--template`）の一致を検査する。
+`project-manifest.json`の欠落、不正JSON、不正schema、または不正な`project.template`はすべて停止条件とする。
+generation manifestを持たない旧案件は、正しいtemplateを指定して`script.py`から再生成する必要がある。
+
+再変換時は、`.project-generator-wordpress.json`の`template`もrequested templateと一致しなければならない。
+`--force`でもtemplate不一致を許可しない。
+この検査はtemplate migration機能ではなく、異なるtemplateによる誤変換を防ぐためのfail-closed契約である。
+
+これらの不一致やmanifest不正は、staging作成とswapより前に検出する。
+停止時は静的HTMLや既存案件を変更しない。
 
 ## header.php
 
@@ -220,16 +234,31 @@ CSSとJavaScript本体はHTML内に直書きせずenqueueする。
 
 manifestに記録された生成ファイルが欠落している場合は、再変換時に再生成できる。
 
-## directory transaction残骸
+## cross-operation transaction残骸
 
-変換開始前に、案件ディレクトリの隣にある次の残骸を検査する。
+通常生成、`--refresh-dist`、WordPress変換は、操作種別を問わず同じ案件に属する未解決transaction残骸を共通scannerで横断検査する。
+案件ディレクトリの隣にある次の残骸が対象となる。
 
+- `.案件名.tmp-*`
+- `.案件名.backup-*`
+- `.案件名.failed-*`
 - `.案件名.wp-tmp-*`
 - `.案件名.wp-backup-*`
 - `.案件名.wp-failed-*`
 
-1件でも存在する場合は処理を停止する。
-内容確認前に自動削除しない。
+案件内にある次のdist／generation manifest transaction残骸も対象となる。
+
+- `.dist.tmp-*`
+- `.dist.backup-*`
+- `.dist.failed-*`
+- `.project-manifest.json.tmp-*`
+- `.project-manifest.json.backup-*`
+- `.project-manifest.json.failed-*`
+
+別案件の残骸は対象外とする。
+対象が一件でも存在すれば、通常生成、`--refresh-dist`、WordPress変換をすべて停止する。
+残骸は自動削除しないため、内容確認と手動復旧が必要となる。
+pre-swap cleanup失敗で残ったstagingも、次回scannerの停止対象になる。
 
 正常交換後はbackupを削除する。
 交換失敗後にrollbackが成功した場合は、failed候補を削除して元のswap例外を再送出する。
