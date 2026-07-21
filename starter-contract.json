@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "repositoryName": "sass-starter-exiga",
+  "requiredCommit": "d35db78d2bdaeb38399e78f3904afe39a088aa96",
+  "requiredAssets": [
+    "dist/css/main.css",
+    "dist/js/core/app.js"
+  ],
+  "requiredRuntimeTokens": [
+    ".js-nav-toggle",
+    "#site-nav",
+    ".js-nav-overlay",
+    ".js-reveal",
+    "data-open"
+  ]
+}

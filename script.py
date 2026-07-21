@@ -10,6 +10,12 @@ from uuid import uuid4
 
 from filesystem_safety import rename_with_retry
 
+from starter_contract import (
+    StarterContractError,
+    contract_path_for,
+    validate_starter_contract,
+)
+
 from project_naming import (
     escape_project_html,
     sanitize_project_slug,
@@ -265,14 +271,26 @@ def ensure_output_structure(output_dir: Path) -> None:
 
 
 def resolve_exiga_dist(base_dir: Path) -> Path:
-    dist_root = base_dir.parent / "sass-starter-exiga" / "dist"
+    if contract_path_for(base_dir).is_file():
+        return validate_starter_contract(
+            base_dir
+        ).dist_root
+
+    dist_root = (
+        base_dir.parent
+        / "sass-starter-exiga"
+        / "dist"
+    )
+
     if not dist_root.exists() or not dist_root.is_dir():
         raise FileNotFoundError(
-            f"`sass-starter-exiga/dist` が見つかりません: {dist_root}"
+            f"`sass-starter-exiga/dist` が見つかりません: "
+            f"{dist_root}"
         )
 
     for relative_path in REQUIRED_DIST_FILES:
         source = dist_root / relative_path
+
         if not source.exists() or not source.is_file():
             raise FileNotFoundError(
                 f"必須distファイルが見つかりません: {source}"
@@ -421,7 +439,7 @@ def main() -> None:
 
         try:
             output_dir = refresh_dist(base_dir=base_dir, project_name=args.project)
-        except (OSError, ValueError) as error:
+        except (OSError, ValueError, StarterContractError) as error:
             print(error)
             raise SystemExit(1) from error
 
@@ -438,7 +456,7 @@ def main() -> None:
             project_name=project_name,
             force=args.force,
         )
-    except (OSError, ValueError) as error:
+    except (OSError, ValueError, StarterContractError) as error:
         print(error)
         raise SystemExit(1) from error
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections import Counter
 from html.parser import HTMLParser
 from pathlib import Path
@@ -20,6 +21,7 @@ class TemplateParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.ids: list[str] = []
+        self.classes: list[str] = []
         self.references: list[
             tuple[int, str, str, str]
         ] = []
@@ -34,6 +36,13 @@ class TemplateParser(HTMLParser):
 
         if element_id:
             self.ids.append(element_id)
+
+        class_value = attributes.get("class")
+
+        if class_value:
+            self.classes.extend(
+                class_value.split()
+            )
 
         line_number, _ = self.getpos()
 
@@ -199,6 +208,92 @@ class TemplateReferenceTests(unittest.TestCase):
             [],
             errors,
             "\n" + "\n".join(errors),
+        )
+
+    def test_runtime_tokens_match_templates(
+        self,
+    ) -> None:
+        contract = json.loads(
+            (
+                REPOSITORY_ROOT
+                / "starter-contract.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        runtime_tokens = contract.get(
+            "requiredRuntimeTokens"
+        )
+
+        self.assertIsInstance(
+            runtime_tokens,
+            list,
+        )
+        self.assertTrue(runtime_tokens)
+
+        template_classes: set[str] = set()
+        template_ids: set[str] = set()
+        template_texts: list[str] = []
+
+        for html_path in sorted(
+            TEMPLATES_ROOT.rglob("*.html")
+        ):
+            parser = parse_template(html_path)
+            template_classes.update(parser.classes)
+            template_ids.update(parser.ids)
+            template_texts.append(
+                html_path.read_text(encoding="utf-8")
+            )
+
+        combined_template_text = "\n".join(
+            template_texts
+        )
+        missing_tokens: list[str] = []
+
+        for token in runtime_tokens:
+            if token.startswith("."):
+                if token[1:] not in template_classes:
+                    missing_tokens.append(token)
+            elif token.startswith("#"):
+                if token[1:] not in template_ids:
+                    missing_tokens.append(token)
+            elif token not in combined_template_text:
+                missing_tokens.append(token)
+
+        declared_js_hooks = {
+            token[1:]
+            for token in runtime_tokens
+            if token.startswith(".js-")
+        }
+
+        template_js_hooks = {
+            class_name
+            for class_name in template_classes
+            if class_name.startswith("js-")
+        }
+
+        undeclared_js_hooks = sorted(
+            template_js_hooks - declared_js_hooks
+        )
+
+        self.assertEqual(
+            [],
+            missing_tokens,
+            (
+                "契約tokenがテンプレにありません: "
+                f"{missing_tokens}"
+            ),
+        )
+        self.assertEqual(
+            [],
+            undeclared_js_hooks,
+            (
+                "契約されていないjs-* hookがあります: "
+                f"{undeclared_js_hooks}"
+            ),
+        )
+        self.assertNotIn(
+            "js-site-nav",
+            template_classes,
         )
 
     def test_ids_are_unique_per_document(self) -> None:
