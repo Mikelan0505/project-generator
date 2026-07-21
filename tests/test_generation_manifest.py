@@ -92,7 +92,15 @@ class GenerationManifestTests(unittest.TestCase):
             encoding="utf-8",
         )
 
+        self.resolve_dist_patcher = patch.object(
+            script,
+            "resolve_exiga_dist",
+            return_value=self.dist_root,
+        )
+        self.resolve_dist_patcher.start()
+
     def tearDown(self) -> None:
+        self.resolve_dist_patcher.stop()
         self.temporary_directory.cleanup()
 
     def read_manifest(

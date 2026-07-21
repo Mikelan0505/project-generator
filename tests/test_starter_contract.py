@@ -330,6 +330,24 @@ class StarterContractTests(unittest.TestCase):
                 self.base_dir
             )
 
+    def test_detached_head_at_required_commit_is_valid(
+        self,
+    ) -> None:
+        self.run_git(
+            "checkout",
+            "--detach",
+            self.starter_head,
+        )
+
+        validated = validate_starter_contract(
+            self.base_dir
+        )
+
+        self.assertEqual(
+            self.starter_head,
+            validated.head,
+        )
+
     def test_missing_asset_is_rejected(
         self,
     ) -> None:
@@ -603,6 +621,22 @@ class StarterContractTests(unittest.TestCase):
             self.dist_root.resolve(),
             resolved_dist.resolve(),
         )
+
+    def test_missing_contract_is_rejected_without_legacy_fallback(
+        self,
+    ) -> None:
+        (
+            self.base_dir
+            / "starter-contract.json"
+        ).unlink()
+
+        with self.assertRaisesRegex(
+            StarterContractError,
+            "starter接続契約",
+        ):
+            script.resolve_exiga_dist(
+                self.base_dir
+            )
 
 
 if __name__ == "__main__":

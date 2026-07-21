@@ -369,6 +369,7 @@ outputs/<project-name>/
 
 ### starter契約
 
+- `starter-contract.json`は必須で、欠落・破損・読み取り不能時は停止する。
 - starterのHEADが`starter-contract.json`の`requiredCommit`と一致する。
 - starterのworking treeがcleanである。
 - コピー対象dist treeのSHA-256が一致する。
@@ -376,10 +377,17 @@ outputs/<project-name>/
 - runtime tokenがJavaScriptの静的文字列リテラルとして完全一致する。
 - コメント内だけ、または長い文字列の一部分だけでは一致とみなさない。
 - `dist`外へのtraversalを含むasset pathは拒否する。
+- 実行契約はbranch非依存とし、detached HEADでも固定commitとartifactが
+  一致すれば有効とする。
+- `main`と`origin/main`の同期はrelease・監査時に別途確認し、
+  offline実行を妨げるruntime必須条件にはしない。
 
 ### 案件生成とrefresh
 
 - 新規生成は一時ディレクトリで完了してからliveへ交換する。
+- 新規生成でもrollback二重失敗時はbackup、staging、failedを保持する。
+- unresolvedな`.案件名.tmp-*`、`.案件名.backup-*`、`.案件名.failed-*`が
+  ある状態では同名案件の生成を開始しない。
 - `--refresh-dist`はdistと`project-manifest.json`を一組として交換する。
 - refreshでも案件表示名と`createdAt`を保持する。
 - rename失敗時はrollbackを試みる。
@@ -393,6 +401,9 @@ outputs/<project-name>/
 - `--force`でもユーザー編集済みファイルは置換しない。
 - 所有権を確認できない既存同名ファイルは置換しない。
 - 変換処理は一時ディレクトリを使用し、失敗時に元案件を保持する。
+- rollback二重失敗時はbackup、staging、failedと元例外・復旧例外を保持する。
+- unresolvedな`.案件名.wp-tmp-*`、`.案件名.wp-backup-*`、
+  `.案件名.wp-failed-*`がある状態では変換を開始しない。
 - header/footer navの現在ページ状態は`is_front_page()`と`is_page()`で
   動的に生成する。
 - `is-current`と`aria-current="page"`は現在ページだけに付与する。

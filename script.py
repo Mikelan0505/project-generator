@@ -9,7 +9,12 @@ from datetime import date
 from pathlib import Path
 from uuid import uuid4
 
-from filesystem_safety import rename_with_retry
+import filesystem_safety
+from filesystem_safety import (
+    DirectoryTransactionRecoveryError,
+    assert_no_directory_transaction_artifacts,
+    rename_with_retry,
+)
 
 from generation_manifest import (
     GenerationManifestError,
@@ -20,7 +25,6 @@ from generation_manifest import (
 
 from starter_contract import (
     StarterContractError,
-    contract_path_for,
     validate_starter_contract,
 )
 
@@ -280,32 +284,9 @@ def ensure_output_structure(output_dir: Path) -> None:
 
 
 def resolve_exiga_dist(base_dir: Path) -> Path:
-    if contract_path_for(base_dir).is_file():
-        return validate_starter_contract(
-            base_dir
-        ).dist_root
-
-    dist_root = (
-        base_dir.parent
-        / "sass-starter-exiga"
-        / "dist"
-    )
-
-    if not dist_root.exists() or not dist_root.is_dir():
-        raise FileNotFoundError(
-            f"`sass-starter-exiga/dist` が見つかりません: "
-            f"{dist_root}"
-        )
-
-    for relative_path in REQUIRED_DIST_FILES:
-        source = dist_root / relative_path
-
-        if not source.exists() or not source.is_file():
-            raise FileNotFoundError(
-                f"必須distファイルが見つかりません: {source}"
-            )
-
-    return dist_root
+    return validate_starter_contract(
+        base_dir
+    ).dist_root
 
 
 def copy_exiga_dist(dist_root: Path, destination_dist_dir: Path) -> None:
@@ -326,29 +307,11 @@ def replace_directory_transactionally(
     staging_dir: Path,
     destination_dir: Path,
 ) -> None:
-    if destination_dir.exists() and not destination_dir.is_dir():
-        raise FileExistsError(
-            f"置換対象がディレクトリではありません: {destination_dir}"
-        )
-
-    backup_dir = destination_dir.parent / (
-        f".{destination_dir.name}.backup-{uuid4().hex}"
+    filesystem_safety.replace_directory_transactionally(
+        staging_dir,
+        destination_dir,
+        rename_path=rename_with_retry,
     )
-    had_destination = destination_dir.exists()
-
-    if had_destination:
-        rename_with_retry(destination_dir, backup_dir)
-
-    try:
-        rename_with_retry(staging_dir, destination_dir)
-    except Exception:
-        if had_destination and backup_dir.exists() and not destination_dir.exists():
-            rename_with_retry(backup_dir, destination_dir)
-        raise
-    else:
-        if backup_dir.exists():
-            shutil.rmtree(backup_dir, ignore_errors=True)
-
 
 
 class DistRefreshRecoveryError(RuntimeError):
@@ -832,11 +795,12 @@ def create_project(
     if not template_dir.exists() or not template_dir.is_dir():
         raise FileNotFoundError(f"テンプレが見つかりません: {template_dir}")
 
-    dist_root = resolve_exiga_dist(base_dir)
     outputs_dir = base_dir / "outputs"
-    outputs_dir.mkdir(parents=True, exist_ok=True)
-
     output_dir = outputs_dir / sanitize_project_name(project_name)
+    assert_no_directory_transaction_artifacts(
+        output_dir
+    )
+
     if output_dir.exists() and not output_dir.is_dir():
         raise FileExistsError(
             f"同名の出力先がディレクトリではありません: {output_dir}"
@@ -845,7 +809,10 @@ def create_project(
     if output_dir.exists() and not force and not confirm_overwrite(output_dir):
         raise SystemExit("生成を中止しました。")
 
+    dist_root = resolve_exiga_dist(base_dir)
+    outputs_dir.mkdir(parents=True, exist_ok=True)
     staging_dir = outputs_dir / f".{output_dir.name}.tmp-{uuid4().hex}"
+    preserve_staging = False
 
     try:
         shutil.copytree(template_dir, staging_dir)
@@ -880,8 +847,14 @@ def create_project(
             staging_dir,
             output_dir,
         )
+    except DirectoryTransactionRecoveryError:
+        preserve_staging = True
+        raise
     finally:
-        if staging_dir.exists():
+        if (
+            staging_dir.exists()
+            and not preserve_staging
+        ):
             shutil.rmtree(staging_dir, ignore_errors=True)
 
     return output_dir

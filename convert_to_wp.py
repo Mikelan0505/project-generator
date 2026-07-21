@@ -9,9 +9,14 @@ from pathlib import Path, PurePosixPath
 from textwrap import dedent
 from uuid import uuid4
 
+import filesystem_safety
 from generation_manifest import sha256_file, utc_timestamp
 
-from filesystem_safety import rename_with_retry
+from filesystem_safety import (
+    DirectoryTransactionRecoveryError,
+    assert_no_directory_transaction_artifacts,
+    rename_with_retry,
+)
 
 from project_naming import (
     sanitize_project_slug,
@@ -1059,21 +1064,12 @@ def replace_directory_transactionally(
     staging_dir: Path,
     destination_dir: Path,
 ) -> None:
-    backup_dir = destination_dir.parent / (
-        f".{destination_dir.name}.wp-backup-{uuid4().hex}"
+    filesystem_safety.replace_directory_transactionally(
+        staging_dir,
+        destination_dir,
+        transaction_label="wp",
+        rename_path=rename_with_retry,
     )
-
-    rename_with_retry(destination_dir, backup_dir)
-
-    try:
-        rename_with_retry(staging_dir, destination_dir)
-    except Exception:
-        if backup_dir.exists() and not destination_dir.exists():
-            rename_with_retry(backup_dir, destination_dir)
-        raise
-    else:
-        if backup_dir.exists():
-            shutil.rmtree(backup_dir, ignore_errors=True)
 
 
 def generate_wordpress_files(
@@ -1180,6 +1176,11 @@ def convert_project(
         )
     )
 
+    assert_no_directory_transaction_artifacts(
+        project_dir,
+        transaction_label="wp",
+    )
+
     if (
         not project_dir.exists()
         or not project_dir.is_dir()
@@ -1269,6 +1270,7 @@ def convert_project(
             f".wp-tmp-{uuid4().hex}"
         )
     )
+    preserve_staging = False
 
     try:
         shutil.copytree(
@@ -1300,8 +1302,14 @@ def convert_project(
             staging_dir,
             project_dir,
         )
+    except DirectoryTransactionRecoveryError:
+        preserve_staging = True
+        raise
     finally:
-        if staging_dir.exists():
+        if (
+            staging_dir.exists()
+            and not preserve_staging
+        ):
             shutil.rmtree(
                 staging_dir,
                 ignore_errors=True,

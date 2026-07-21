@@ -1,40 +1,37 @@
-# ファイル名
+# convert_to_wp.py 仕様固定メモ
 
-convert-to-wp-spec.md
+## 目的
 
-## convert_to_wp.py 仕様固定メモ
+`project-generator`で生成した静的HTML案件を、最小構成のWordPressテーマとして利用できる状態へ変換する。
+対象は`website`、`shop`、`lp`である。
 
-### 目的
+変換の中心は、header/footer共通化、WordPress URL化、asset enqueue、body class付与、現在ページnavの動的化である。
+`template-parts`、`wp_nav_menu()`、loop、投稿取得、カスタムフィールドまでは扱わない。
 
-`project-generator` で生成した静的 HTML を、**最小の WordPress テーマ構成** に変換する。
-対象は現時点で `website` と `shop`。
-目的は **読み込み系の PHP 化** と **本番寄りの最小 WordPress 化** であり、まだ `template-parts` 化や loop 化までは行わない。
+## 対応テンプレートと生成ファイル
 
----
+全テンプレートで次を生成する。
 
-## 対応テンプレート
+- `style.css`
+- `index.php`
+- `functions.php`
+- `header.php`
+- `footer.php`
+- `.project-generator-wordpress.json`
 
-- `website`
-- `shop`
-
----
-
-## 変換対象テンプレートと出力ファイル
+元の静的HTMLやassetは削除せず、案件ディレクトリ内に残す。
 
 ### website
 
-元ファイル:
+入力HTML:
 
 - `index.html`
 - `about.html`
 - `service.html`
 - `contact.html`
 
-変換後:
+追加生成:
 
-- `header.php`
-- `footer.php`
-- `functions.php`
 - `front-page.php`
 - `page-about.php`
 - `page-service.php`
@@ -42,349 +39,240 @@ convert-to-wp-spec.md
 
 ### shop
 
-元ファイル:
+入力HTML:
 
 - `index.html`
 - `products.html`
 - `about.html`
 - `contact.html`
 
-変換後:
+追加生成:
 
-- `header.php`
-- `footer.php`
-- `functions.php`
 - `front-page.php`
 - `page-products.php`
 - `page-about.php`
 - `page-contact.php`
 
----
+### lp
 
-## convert_to_wp.py の役割
+入力HTML:
 
-`convert_to_wp.py` は以下を行う。
+- `index.html`
 
-1. 生成済みの HTML を読む
-2. `header.php` / `footer.php` を切り出す
-3. 各 `.html` を WordPress 用 `.php` に変換する
-4. `functions.php` を生成する
-5. CSS / JS の直書きを削除し、enqueue に寄せる
-6. `.html` リンクを `home_url()` ベースに変換する
-7. サイトタイトルを `bloginfo('name')` に変換する
-8. `body_class()` をテンプレ別に付与する
-9. `main` の中身はそのまま保持する
+追加生成:
 
----
+- `front-page.php`
 
-## 基本方針
+## 変換処理
 
-### 読み込み共通化
+`convert_to_wp.py`は次を行う。
 
-各ページは最小で次の形を保つ。
+1. 対象案件と必須HTMLを検査する。
+2. 既存WordPress生成物と所有権manifestを検査する。
+3. 案件全体を`.案件名.wp-tmp-*`へコピーする。
+4. staging内で既存のgenerator所有ファイルを除去する。
+5. `header.php`、`footer.php`、`functions.php`、各ページPHPを生成する。
+6. 生成ファイルのSHA-256を所有権manifestへ記録する。
+7. stagingとlive案件をtransactionalに交換する。
 
-    <?php get_header(); ?>
+変換途中で失敗した場合、live案件は交換しない。
+forward swapとrollbackの両方に失敗した場合は、元例外と復旧例外を保持し、backup、staging、failedの位置を例外へ記録する。
+この状態は`DirectoryTransactionRecoveryError`として通知する。
 
-    <main class="main" id="main">
-      ...
-    </main>
+## header.php
 
-    <?php get_footer(); ?>
+`header.php`には次を含める。
 
-### まだやらないこと
-
-以下はまだ対象外。
-
-- `template-parts` 化
-- `wp_nav_menu()`
-- WordPress loop
-- 投稿取得
-- カスタムフィールド
-- current 自動切り替え
-- セクション単位の PHP 分割
-
----
-
-## header.php の仕様
-
-### 共通で含めるもの
-
-- `<!doctype html>`
-- `<html lang="ja">`
-- `<head>...</head>`
-- `<?php wp_head(); ?>`
-- `<body <?php body_class('...'); ?>>`
+- `<!doctype html>`から`<main>`直前までの共通header
+- WordPress document title
+- `wp_head()`
+- `body_class('t-<template>')`
 - skip-link
-- `<header>...</header>`
+- site headerとnavigation
 
-### body_class
+固定サイトタイトルリンクは次へ変換する。
 
-- `website` → `body_class('t-website')`
-- `shop` → `body_class('t-shop')`
+```php
+<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="site-title__link">
+  <?php bloginfo( 'name' ); ?>
+</a>
+```
 
-### サイトタイトル
+静的CSS `<link>`は削除し、`functions.php`のenqueueへ移す。
 
-固定文字列ではなく WordPress から取る。
+## footer.php
 
-    <a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="site-title__link">
-      <?php bloginfo( 'name' ); ?>
-    </a>
-
-### CSS の扱い
-
-`header.php` に CSS の `<link>` は直書きしない。
-CSS は `functions.php` の enqueue に寄せる。
-
----
-
-## footer.php の仕様
-
-### 共通で含めるもの
+`footer.php`には次を含める。
 
 - `<footer>...</footer>`
-- `<?php wp_footer(); ?>`
+- `wp_footer()`
 - `</body>`
 - `</html>`
 
-### JS の扱い
+静的JavaScript `<script>`は削除し、`functions.php`のenqueueへ移す。
 
-`footer.php` に JS の `<script>` は直書きしない。
-JS は `functions.php` の enqueue に寄せる。
+## 各ページPHP
 
----
+各ページPHPは次の形を基本とする。
 
-## functions.php の仕様
+```php
+<?php
+add_filter(
+  'body_class',
+  static function ( $classes ) {
+    $classes[] = 'p-home';
+    return $classes;
+  }
+);
+?>
+<?php get_header(); ?>
 
-### 目的
+<main>...</main>
 
-- CSS / JS を enqueue する
-- `filemtime()` ベースの版管理を行う
-- `type="module"` を維持する
+<?php get_footer(); ?>
+```
 
-### 読み込むファイル
+ページclassは次の規則で付与する。
 
-- `dist/css/main.css`
-- `dist/js/core/app.js`
+- `index.html` → `p-home`
+- その他 → `p-<HTMLファイル名のstem>`
 
-### 期待する役割
+`<main>...</main>`のsection構造は保持し、section単位のPHP分割は行わない。
 
-- `wp_enqueue_style()`
-- `wp_enqueue_script()`
-- `filemtime()` を使った version 付与
-- `script_loader_tag` フィルタで `type="module"` を付与
+## functions.php
 
-### 例
+次を実装する。
 
-    <?php
-    function pg_asset_version( $relative_path ) {
-      $file_path = get_stylesheet_directory() . $relative_path;
-      if ( file_exists( $file_path ) ) {
-        return (string) filemtime( $file_path );
-      }
-      return null;
-    }
+- `dist/css/main.css`の`wp_enqueue_style()`
+- `dist/js/core/app.js`の`wp_enqueue_script()`
+- `filemtime()`によるversion付与
+- `script_loader_tag`による`type="module"`付与
 
-    function pg_enqueue_assets() {
-      wp_enqueue_style(
-        'pg-main',
-        get_stylesheet_directory_uri() . '/dist/css/main.css',
-        array(),
-        pg_asset_version( '/dist/css/main.css' )
-      );
+assetが存在しない場合、versionは`null`とする。
 
-      wp_enqueue_script(
-        'pg-main',
-        get_stylesheet_directory_uri() . '/dist/js/core/app.js',
-        array(),
-        pg_asset_version( '/dist/js/core/app.js' ),
-        true
-      );
-    }
-    add_action( 'wp_enqueue_scripts', 'pg_enqueue_assets' );
+## URLとasset path
 
-    function pg_add_module_attribute( $tag, $handle, $src ) {
-      if ( 'pg-main' !== $handle ) {
-        return $tag;
-      }
+### ページリンク
 
-      return sprintf(
-        '<script type="module" src="%s"></script>',
-        esc_url( $src )
-      );
-    }
-    add_filter( 'script_loader_tag', 'pg_add_module_attribute', 10, 3 );
+静的HTMLリンクを`home_url()`へ変換する。
 
----
+website:
 
-## パス変換ルール
+- `index.html` → `/`
+- `about.html` → `/about/`
+- `service.html` → `/service/`
+- `contact.html` → `/contact/`
 
-### CSS / JS
+shop:
 
-相対パスは使わず、`functions.php` の enqueue に寄せる。
+- `index.html` → `/`
+- `products.html` → `/products/`
+- `about.html` → `/about/`
+- `contact.html` → `/contact/`
 
-対象:
+lp:
 
-- `./dist/css/main.css`
-- `./dist/js/core/app.js`
+- `index.html` → `/`
+- `service.html` → `/#offer`
+- `contact.html` → `/#cta`
 
-### 画像
+### asset
 
-画像相対パスは `get_stylesheet_directory_uri()` ベースに変換する。
+次の相対asset pathは`get_stylesheet_directory_uri()`ベースへ変換する。
 
-対象例:
+- `dist/...`
+- `assets/img/...`
+- `img/...`
 
-- `./assets/img/...`
-- `/img/...`
-- 必要に応じて画像パス全般
+CSSとJavaScript本体はHTML内に直書きせずenqueueする。
 
-変換イメージ:
+## navigationの現在ページ状態
 
-    <?php echo esc_url( get_stylesheet_directory_uri() . '/img/sample.webp' ); ?>
+`<nav>...</nav>`内の対応リンクだけを動的化する。
 
-または `assets/img` を使う場合はその構成に合わせる。
+- `index.html` → `is_front_page()`
+- その他の対応HTML → `is_page( '<slug>' )`
 
----
+現在ページの場合だけ次を出力する。
 
-## ナビリンク変換ルール
+- `is-current` class
+- `aria-current="page"`
 
-### website
+静的HTMLに残っていた`is-current`と`aria-current="page"`は除去し、WordPress条件式へ置き換える。
+`nav`外のリンクには現在ページ変換を適用しない。
 
-- トップ → `home_url( '/' )`
-- 会社案内 → `home_url( '/about/' )`
-- サービス → `home_url( '/service/' )`
-- お問い合わせ → `home_url( '/contact/' )`
+## 所有権manifestと--force
 
-### shop
+`.project-generator-wordpress.json`は、generatorが管理するWordPress生成ファイルと各SHA-256を記録する。
 
-- トップ → `home_url( '/' )`
-- 商品一覧 → `home_url( '/products/' )`
-- 店舗案内 → `home_url( '/about/' )`
-- お問い合わせ → `home_url( '/contact/' )`
+`--force`で再変換できる条件は次のとおり。
 
-### 例
+- 所有権manifestが正常に読める。
+- 既存のgenerator管理名ファイルがmanifestに記録されている。
+- 既存ファイルのSHA-256が記録値と一致する。
 
-    <a href="<?php echo esc_url( home_url( '/' ) ); ?>">トップ</a>
-    <a href="<?php echo esc_url( home_url( '/products/' ) ); ?>">商品一覧</a>
-    <a href="<?php echo esc_url( home_url( '/about/' ) ); ?>">店舗案内</a>
-    <a href="<?php echo esc_url( home_url( '/contact/' ) ); ?>">お問い合わせ</a>
+次は`--force`でも上書き・削除しない。
 
----
+- generator所有権を確認できない同名ファイル
+- 生成後に編集されたファイル
+- 管理範囲外またはtraversalを含むmanifest path
+- 不正schema、kind、template、SHA-256を持つmanifest
 
-## main の扱い
+manifestに記録された生成ファイルが欠落している場合は、再変換時に再生成できる。
 
-- 各ページの `<main>...</main>` は保持する
-- section 分割はしない
-- 各テンプレの本文構造は極力そのまま残す
+## directory transaction残骸
 
----
+変換開始前に、案件ディレクトリの隣にある次の残骸を検査する。
 
-## 確認項目
+- `.案件名.wp-tmp-*`
+- `.案件名.wp-backup-*`
+- `.案件名.wp-failed-*`
 
-### website
+1件でも存在する場合は処理を停止する。
+内容確認前に自動削除しない。
 
-以下のコマンドで確認する。
+正常交換後はbackupを削除する。
+交換失敗後にrollbackが成功した場合は、failed候補を削除して元のswap例外を再送出する。
+rollbackも失敗した場合は、復旧に必要な資産を残す。
 
-    python script.py --template website --project wp-convert-check -f
-    python convert_to_wp.py --project wp-convert-check --template website
+## 実行例
 
-確認対象:
+```powershell
+python script.py --template website --project wp-convert-check --force
+python convert_to_wp.py --project wp-convert-check --template website
+```
 
-- `functions.php`
-- `header.php`
-- `footer.php`
-- `front-page.php`
-- `page-about.php`
-- `page-service.php`
-- `page-contact.php`
+```powershell
+python script.py --template shop --project shop-convert-check --force
+python convert_to_wp.py --project shop-convert-check --template shop
+```
 
-確認内容:
+```powershell
+python script.py --template lp --project lp-convert-check --force
+python convert_to_wp.py --project lp-convert-check --template lp
+```
 
-- `functions.php` に enqueue がある
-- `header.php` に CSS 直書きがない
-- `footer.php` に JS 直書きがない
-- `wp_head()` / `wp_footer()` がある
-- `home_url()` が使われている
-- `bloginfo('name')` が使われている
-- `body_class('t-website')` になっている
-- 各ページが `get_header()` / `<main>` / `get_footer()` の最小形になっている
+再変換時だけ`convert_to_wp.py`へ`--force`を付ける。
 
-### shop
+## 受入確認
 
-以下のコマンドで確認する。
+- 対応3テンプレートを変換できる。
+- 生成PHPが`php -l`を通る。
+- `header.php`に静的CSS linkが残らない。
+- `footer.php`に静的JS scriptが残らない。
+- `wp_head()`と`wp_footer()`がある。
+- `home_url()`、`bloginfo( 'name' )`、`body_class()`を使用する。
+- 各ページPHPが`get_header()`、`<main>`、`get_footer()`を持つ。
+- nav current状態が`is_front_page()`／`is_page()`で動的に切り替わる。
+- 所有権外または編集済みWordPressファイルを`--force`でも保護する。
+- transaction二重失敗時にbackup、staging、failedと両方の例外情報を保持する。
 
-    python script.py --template shop --project shop-convert-check -f
-    python convert_to_wp.py --project shop-convert-check --template shop
+## 対象外
 
-確認対象:
-
-- `functions.php`
-- `header.php`
-- `footer.php`
-- `front-page.php`
-- `page-products.php`
-- `page-about.php`
-- `page-contact.php`
-
-確認内容:
-
-- `functions.php` に enqueue がある
-- `header.php` に CSS 直書きがない
-- `footer.php` に JS 直書きがない
-- `wp_head()` / `wp_footer()` がある
-- `home_url()` が使われている
-- `bloginfo('name')` が使われている
-- `body_class('t-shop')` になっている
-- `products` が `home_url('/products/')` になっている
-- 各ページが `get_header()` / `<main>` / `get_footer()` の最小形になっている
-
----
-
-## 現時点の到達点
-
-- `website` は最小の本番寄り WordPress 化ができている
-- `shop` も同じ変換思想で WordPress 化できている
-- `functions.php` 生成と enqueue 方針は固まった
-- 読み込み共通化の仕組みはできた
-
----
-
-## 次段階で検討するもの
-
-まだ未着手だが、今後の候補として以下がある。
-
-- `lp` の WordPress 化対応
-- `template-parts` 化
-- `wp_nav_menu()` 対応
-- current 自動切り替え
-- セクション単位の変換
-- loop / 投稿取得
-- カスタムフィールド対応
-
-ただし、現時点ではまだこの段階には進めない。
-まずは `website` / `shop` の **最小 WordPress 変換仕様を固定する** ことを優先する。
-
----
-
-## 現時点の到達点
-
-- `website` は最小の本番寄り WordPress 化ができている
-- `shop` も同じ変換思想で WordPress 化できている
-- `functions.php` 生成と enqueue 方針は固まった
-- 読み込み共通化の仕組みはできた
-
----
-
-## 次段階で検討するもの
-
-まだ未着手だが、今後の候補として以下がある。
-
-- `lp` の WordPress 化対応
-- `template-parts` 化
-- `wp_nav_menu()` 対応
-- current 自動切り替え
-- セクション単位の変換
-- loop / 投稿取得
-- カスタムフィールド対応
-
-ただし、現時点ではまだこの段階には進めない。
-まずは `website` / `shop` の **最小 WordPress 変換仕様を固定する** ことを優先する。
+- `template-parts`
+- `wp_nav_menu()`
+- WordPress loop
+- 投稿・固定ページの自動作成
+- カスタムフィールド
+- section単位のPHP分割
+- WooCommerce等のEC機能

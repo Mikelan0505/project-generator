@@ -16,6 +16,13 @@ GENERATED_DIST_REFERENCES = {
     "dist/css/main.css",
     "dist/js/core/app.js",
 }
+NON_LABEL_REQUIRED_INPUT_TYPES = {
+    "button",
+    "hidden",
+    "image",
+    "reset",
+    "submit",
+}
 
 
 class TemplateParser(HTMLParser):
@@ -66,6 +73,218 @@ def parse_template(path: Path) -> TemplateParser:
     parser.feed(path.read_text(encoding="utf-8"))
     parser.close()
     return parser
+
+
+class FormAccessibilityParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.controls: list[
+            dict[str, object]
+        ] = []
+        self.labels: list[
+            dict[str, object]
+        ] = []
+        self.open_labels: list[
+            dict[str, object]
+        ] = []
+
+    def handle_starttag(
+        self,
+        tag: str,
+        attrs: list[tuple[str, str | None]],
+    ) -> None:
+        attributes = dict(attrs)
+        line_number, _ = self.getpos()
+        normalized_tag = tag.lower()
+
+        if normalized_tag == "label":
+            label = {
+                "line": line_number,
+                "for": attributes.get("for"),
+                "controls": [],
+            }
+            self.labels.append(label)
+            self.open_labels.append(label)
+            return
+
+        if not self.is_labelable_control(
+            normalized_tag,
+            attributes,
+        ):
+            return
+
+        control_index = len(self.controls)
+        self.controls.append(
+            {
+                "line": line_number,
+                "tag": normalized_tag,
+                "id": attributes.get("id"),
+                "aria-label": (
+                    attributes.get("aria-label")
+                ),
+                "aria-labelledby": (
+                    attributes.get(
+                        "aria-labelledby"
+                    )
+                ),
+            }
+        )
+
+        for label in self.open_labels:
+            controls = label["controls"]
+            assert isinstance(controls, list)
+            controls.append(control_index)
+
+    def handle_endtag(
+        self,
+        tag: str,
+    ) -> None:
+        if (
+            tag.lower() == "label"
+            and self.open_labels
+        ):
+            self.open_labels.pop()
+
+    @staticmethod
+    def is_labelable_control(
+        tag: str,
+        attributes: dict[str, str | None],
+    ) -> bool:
+        if tag in {"select", "textarea"}:
+            return True
+
+        if tag != "input":
+            return False
+
+        input_type = (
+            attributes.get("type")
+            or "text"
+        ).lower()
+
+        return (
+            input_type
+            not in NON_LABEL_REQUIRED_INPUT_TYPES
+        )
+
+
+def form_accessibility_errors(
+    text: str,
+    *,
+    source_name: str,
+) -> list[str]:
+    parser = FormAccessibilityParser()
+    parser.feed(text)
+    parser.close()
+
+    errors: list[str] = []
+    controls_by_id: dict[str, int] = {}
+
+    for index, control in enumerate(
+        parser.controls
+    ):
+        control_id = control["id"]
+
+        if not isinstance(control_id, str):
+            continue
+
+        if control_id in controls_by_id:
+            errors.append(
+                f"{source_name}: control idが"
+                f"重複しています: {control_id}"
+            )
+            continue
+
+        controls_by_id[control_id] = index
+
+    explicit_targets: list[str] = []
+    implicit_control_indexes: set[int] = set()
+
+    for label in parser.labels:
+        line_number = label["line"]
+        target = label["for"]
+        nested_controls = label["controls"]
+
+        assert isinstance(line_number, int)
+        assert isinstance(nested_controls, list)
+
+        if isinstance(target, str):
+            explicit_targets.append(target)
+
+            if target not in controls_by_id:
+                errors.append(
+                    f"{source_name}:{line_number}: "
+                    f"label[for={target}]の対象"
+                    "controlがありません。"
+                )
+
+            continue
+
+        if len(nested_controls) != 1:
+            errors.append(
+                f"{source_name}:{line_number}: "
+                "内包labelはlabelable controlを"
+                "1つだけ含む必要があります。"
+            )
+            continue
+
+        implicit_control_indexes.add(
+            nested_controls[0]
+        )
+
+    duplicate_targets = sorted(
+        target
+        for target, count in Counter(
+            explicit_targets
+        ).items()
+        if count > 1
+    )
+
+    for target in duplicate_targets:
+        errors.append(
+            f"{source_name}: label[for={target}]が"
+            "重複しています。"
+        )
+
+    explicit_target_set = set(
+        explicit_targets
+    )
+
+    for index, control in enumerate(
+        parser.controls
+    ):
+        control_id = control["id"]
+        has_explicit_label = (
+            isinstance(control_id, str)
+            and control_id
+            in explicit_target_set
+        )
+        has_implicit_label = (
+            index
+            in implicit_control_indexes
+        )
+        has_aria_name = any(
+            isinstance(control[name], str)
+            and bool(control[name].strip())
+            for name in (
+                "aria-label",
+                "aria-labelledby",
+            )
+        )
+
+        if (
+            has_explicit_label
+            or has_implicit_label
+            or has_aria_name
+        ):
+            continue
+
+        errors.append(
+            f"{source_name}:{control['line']}: "
+            f"{control['tag']} controlに"
+            "関連付けられたlabelがありません。"
+        )
+
+    return errors
 
 
 def normalized_contract_path(raw_path: str) -> str:
@@ -330,6 +549,63 @@ class TemplateReferenceTests(unittest.TestCase):
 class TemplateAccessibilityTests(
     unittest.TestCase
 ):
+    def test_form_controls_have_matching_labels(
+        self,
+    ) -> None:
+        errors: list[str] = []
+
+        for path in sorted(
+            TEMPLATES_ROOT.rglob("*.html")
+        ):
+            relative_path = path.relative_to(
+                TEMPLATES_ROOT
+            ).as_posix()
+            errors.extend(
+                form_accessibility_errors(
+                    path.read_text(
+                        encoding="utf-8"
+                    ),
+                    source_name=relative_path,
+                )
+            )
+
+        self.assertEqual(
+            [],
+            errors,
+            "\n" + "\n".join(errors),
+        )
+
+    def test_form_label_validator_rejects_broken_relationships(
+        self,
+    ) -> None:
+        errors = form_accessibility_errors(
+            """
+            <form>
+              <label for="missing">Missing</label>
+              <label for="email">Email one</label>
+              <label for="email">Email two</label>
+              <input id="email" type="email" />
+              <input id="name" type="text" />
+            </form>
+            """,
+            source_name="fixture.html",
+        )
+
+        combined = "\n".join(errors)
+
+        self.assertIn(
+            "label[for=missing]",
+            combined,
+        )
+        self.assertIn(
+            "label[for=email]が重複",
+            combined,
+        )
+        self.assertIn(
+            "input controlに関連付けられたlabel",
+            combined,
+        )
+
     def test_lists_and_wrapping_labels_use_valid_accessible_markup(
         self,
     ) -> None:

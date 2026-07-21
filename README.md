@@ -287,6 +287,8 @@ GitHub/
 このリポジトリは、生成結果だけでなく生成経路も検証対象とします。
 作業開始時には `project-generator` と `sass-starter-exiga` の両方で
 working treeがcleanであることを確認してください。
+`starter-contract.json`は必須であり、欠落・破損・読み取り不能の場合は
+生成と`--refresh-dist`を開始しません。
 
 ### 回帰テスト
 
@@ -319,6 +321,14 @@ working treeがcleanであることを確認してください。
 runtime tokenは、コピー対象JavaScript内のコメントではない
 静的文字列リテラルと完全一致する必要があります。
 部分文字列やコメント内だけの記述では契約を満たしません。
+
+starter実行契約はbranch非依存です。再現性の基準は`requiredCommit`、
+cleanなworking tree、dist tree hash、必須asset hash、runtime tokenです。
+detached HEADでも同じcommitとartifactであれば有効とします。
+
+`main`と`origin/main`の同期はrelease・監査時の運用確認であり、
+generator実行時の必須条件にはしません。remote未設定やoffline環境でも、
+固定commitとartifactを検証できることを優先します。
 
 ### 案件manifest
 
@@ -355,10 +365,14 @@ WordPress版のheader/footer navは、`is_front_page()`と`is_page()`から
 
 ### transaction残骸
 
-`--refresh-dist`は、未解決のtransaction残骸を検出した場合に停止します。
+通常生成、`--refresh-dist`、WordPress変換は、各処理に対応する
+未解決transaction残骸を検出した場合に停止します。
 
 対象例は次のとおりです。
 
+- `.案件名.tmp-*`
+- `.案件名.backup-*`
+- `.案件名.failed-*`
 - `.dist.tmp-*`
 - `.dist.backup-*`
 - `.dist.failed-*`
@@ -370,6 +384,7 @@ WordPress変換では、案件ディレクトリの隣に次の残骸が残る�
 
 - `.案件名.wp-tmp-*`
 - `.案件名.wp-backup-*`
+- `.案件名.wp-failed-*`
 
 残骸を見つけても、内容を確認する前に削除してはいけません。
 live、backup、failed、tmpの内容と更新時刻を比較し、旧データと新データを

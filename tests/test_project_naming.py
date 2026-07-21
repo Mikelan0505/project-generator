@@ -3,6 +3,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import convert_to_wp
 import script
@@ -101,12 +102,17 @@ class ProjectNamingTests(unittest.TestCase):
 
             project_name = 'A&B <Test> "Quote"'
 
-            output_dir = script.create_project(
-                base_dir=base_dir,
-                template_name="lp",
-                project_name=project_name,
-                force=True,
-            )
+            with patch.object(
+                script,
+                "resolve_exiga_dist",
+                return_value=dist_root,
+            ):
+                output_dir = script.create_project(
+                    base_dir=base_dir,
+                    template_name="lp",
+                    project_name=project_name,
+                    force=True,
+                )
 
             self.assertEqual(
                 "A&B-Test-Quote",

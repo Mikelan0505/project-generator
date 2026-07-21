@@ -95,6 +95,7 @@ class ConversionSafetyTests(unittest.TestCase):
             for path in self.project_dir.parent.iterdir()
             if path.name.startswith(".sample.wp-tmp-")
             or path.name.startswith(".sample.wp-backup-")
+            or path.name.startswith(".sample.wp-failed-")
         ]
 
         self.assertEqual([], leftovers)
@@ -882,6 +883,129 @@ class ConversionSafetyTests(unittest.TestCase):
         ]
 
         self.assertEqual([], backup_directories)
+
+    def test_conversion_rejects_unresolved_transaction_artifacts(
+        self,
+    ) -> None:
+        leftover = (
+            self.project_dir.parent
+            / ".sample.wp-backup-orphan"
+        )
+        leftover.mkdir()
+
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "transaction残骸",
+        ):
+            convert_to_wp.convert_project(
+                base_dir=self.base_dir,
+                project_name="sample",
+                template_name="website",
+            )
+
+        self.assertTrue(leftover.exists())
+
+    def test_swap_and_rollback_failure_preserve_recovery_assets(
+        self,
+    ) -> None:
+        staging_dir = (
+            self.project_dir.parent
+            / ".sample.wp-tmp-manual"
+        )
+        staging_dir.mkdir()
+        (staging_dir / "replacement.txt").write_text(
+            "replacement\n",
+            encoding="utf-8",
+        )
+
+        def rename_with_failures(
+            source: Path,
+            destination: Path,
+        ) -> Path:
+            if (
+                source == staging_dir
+                and destination == self.project_dir
+            ):
+                raise OSError("swap failed")
+
+            if (
+                source.name.startswith(
+                    ".sample.wp-backup-"
+                )
+                and destination
+                == self.project_dir
+            ):
+                raise OSError("restore failed")
+
+            return source.rename(destination)
+
+        with patch.object(
+            convert_to_wp,
+            "rename_with_retry",
+            side_effect=rename_with_failures,
+        ):
+            with self.assertRaises(
+                convert_to_wp
+                .DirectoryTransactionRecoveryError
+            ) as context:
+                convert_to_wp.replace_directory_transactionally(
+                    staging_dir,
+                    self.project_dir,
+                )
+
+        error = context.exception
+
+        self.assertIsInstance(
+            error.__cause__,
+            OSError,
+        )
+        self.assertIn(
+            "swap failed",
+            str(error.__cause__),
+        )
+        self.assertIn(
+            "restore failed",
+            str(error),
+        )
+        self.assertIn("staging=", str(error))
+        self.assertIn("backup=", str(error))
+        self.assertIn("failed=", str(error))
+
+        backups = [
+            path
+            for path
+            in self.project_dir.parent.iterdir()
+            if path.name.startswith(
+                ".sample.wp-backup-"
+            )
+        ]
+        failed = [
+            path
+            for path
+            in self.project_dir.parent.iterdir()
+            if path.name.startswith(
+                ".sample.wp-failed-"
+            )
+        ]
+
+        self.assertEqual(1, len(backups))
+        self.assertEqual(1, len(failed))
+        self.assertFalse(self.project_dir.exists())
+        self.assertEqual(
+            "keep\n",
+            (backups[0] / "keep.txt").read_text(
+                encoding="utf-8"
+            ),
+        )
+        self.assertEqual(
+            "replacement\n",
+            (
+                failed[0]
+                / "replacement.txt"
+            ).read_text(
+                encoding="utf-8"
+            ),
+        )
 
 
 if __name__ == "__main__":

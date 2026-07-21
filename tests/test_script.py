@@ -27,6 +27,18 @@ class GeneratorSafetyTests(unittest.TestCase):
         self.root = Path(self.temporary_directory.name)
         self.base_dir = self.root / "project-generator"
         self.base_dir.mkdir()
+        self.dist_root = (
+            self.root
+            / "sass-starter-exiga"
+            / "dist"
+        )
+
+        self.resolve_dist_patcher = patch.object(
+            script,
+            "resolve_exiga_dist",
+            return_value=self.dist_root,
+        )
+        self.resolve_dist_patcher.start()
 
         self.template_dir = self.base_dir / "templates" / "website"
         self.template_dir.mkdir(parents=True)
@@ -37,10 +49,11 @@ class GeneratorSafetyTests(unittest.TestCase):
         )
 
     def tearDown(self) -> None:
+        self.resolve_dist_patcher.stop()
         self.temporary_directory.cleanup()
 
     def create_dist(self) -> Path:
-        dist_root = self.root / "sass-starter-exiga" / "dist"
+        dist_root = self.dist_root
         (dist_root / "css").mkdir(parents=True)
         (dist_root / "js" / "core").mkdir(parents=True)
 
@@ -64,6 +77,7 @@ class GeneratorSafetyTests(unittest.TestCase):
             for path in parent.iterdir()
             if path.name.startswith(".sample.tmp-")
             or path.name.startswith(".sample.backup-")
+            or path.name.startswith(".sample.failed-")
             or path.name.startswith(".dist.tmp-")
             or path.name.startswith(".dist.backup-")
             or path.name.startswith(".dist.failed-")
@@ -79,6 +93,133 @@ class GeneratorSafetyTests(unittest.TestCase):
         ]
 
         self.assertEqual([], leftovers)
+
+    def test_create_rejects_unresolved_transaction_artifacts(
+        self,
+    ) -> None:
+        output_dir = self.output_dir()
+        output_dir.parent.mkdir(parents=True)
+
+        leftover = (
+            output_dir.parent
+            / ".sample.backup-orphan"
+        )
+        leftover.mkdir()
+
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "transaction残骸",
+        ):
+            script.create_project(
+                base_dir=self.base_dir,
+                template_name="website",
+                project_name="sample",
+                force=True,
+            )
+
+        self.assertTrue(leftover.exists())
+
+    def test_swap_and_rollback_failure_preserve_recovery_assets(
+        self,
+    ) -> None:
+        output_dir = self.output_dir()
+        output_dir.mkdir(parents=True)
+        (output_dir / "old.txt").write_text(
+            "old\n",
+            encoding="utf-8",
+        )
+
+        staging_dir = (
+            output_dir.parent
+            / ".sample.tmp-manual"
+        )
+        staging_dir.mkdir()
+        (staging_dir / "new.txt").write_text(
+            "new\n",
+            encoding="utf-8",
+        )
+
+        def rename_with_failures(
+            source: Path,
+            destination: Path,
+        ) -> Path:
+            if (
+                source == staging_dir
+                and destination == output_dir
+            ):
+                raise OSError("swap failed")
+
+            if (
+                source.name.startswith(
+                    ".sample.backup-"
+                )
+                and destination == output_dir
+            ):
+                raise OSError("restore failed")
+
+            return source.rename(destination)
+
+        with patch.object(
+            script,
+            "rename_with_retry",
+            side_effect=rename_with_failures,
+        ):
+            with self.assertRaises(
+                script.DirectoryTransactionRecoveryError
+            ) as context:
+                script.replace_directory_transactionally(
+                    staging_dir,
+                    output_dir,
+                )
+
+        error = context.exception
+
+        self.assertIsInstance(
+            error.__cause__,
+            OSError,
+        )
+        self.assertIn(
+            "swap failed",
+            str(error.__cause__),
+        )
+        self.assertIn(
+            "restore failed",
+            str(error),
+        )
+        self.assertIn("staging=", str(error))
+        self.assertIn("backup=", str(error))
+        self.assertIn("failed=", str(error))
+
+        backups = [
+            path
+            for path in output_dir.parent.iterdir()
+            if path.name.startswith(
+                ".sample.backup-"
+            )
+        ]
+        failed = [
+            path
+            for path in output_dir.parent.iterdir()
+            if path.name.startswith(
+                ".sample.failed-"
+            )
+        ]
+
+        self.assertEqual(1, len(backups))
+        self.assertEqual(1, len(failed))
+        self.assertFalse(output_dir.exists())
+        self.assertEqual(
+            "old\n",
+            (backups[0] / "old.txt").read_text(
+                encoding="utf-8"
+            ),
+        )
+        self.assertEqual(
+            "new\n",
+            (failed[0] / "new.txt").read_text(
+                encoding="utf-8"
+            ),
+        )
 
     def test_force_preflight_failure_preserves_existing_project(self) -> None:
         output_dir = self.output_dir()
