@@ -8,6 +8,13 @@ from datetime import date
 from pathlib import Path
 from uuid import uuid4
 
+from filesystem_safety import rename_with_retry
+
+from project_naming import (
+    escape_project_html,
+    sanitize_project_slug,
+)
+
 
 CSS_HREF = "./dist/css/main.css"
 APP_JS_SRC = "./dist/js/core/app.js"
@@ -92,13 +99,7 @@ def prompt_project_name() -> str:
 
 
 def sanitize_project_name(project_name: str) -> str:
-    normalized = re.sub(r'[<>:"/\\|?*]+', "-", project_name.strip())
-    normalized = re.sub(r"\s+", "-", normalized)
-    normalized = re.sub(r"-{2,}", "-", normalized)
-    normalized = normalized.strip(" .-_")
-    if not normalized:
-        raise ValueError("案件名から有効なフォルダ名を作成できませんでした。")
-    return normalized
+    return sanitize_project_slug(project_name)
 
 
 def confirm_overwrite(output_dir: Path) -> bool:
@@ -135,7 +136,7 @@ def replace_placeholders(
     page_title: str,
 ) -> None:
     replacements = {
-        "{{PROJECT}}": project_name,
+        "{{PROJECT}}": escape_project_html(project_name),
         "{{DATE}}": generated_date,
         "{{PAGE_TITLE}}": page_title,
     }
@@ -309,13 +310,13 @@ def replace_directory_transactionally(
     had_destination = destination_dir.exists()
 
     if had_destination:
-        destination_dir.rename(backup_dir)
+        rename_with_retry(destination_dir, backup_dir)
 
     try:
-        staging_dir.rename(destination_dir)
+        rename_with_retry(staging_dir, destination_dir)
     except Exception:
         if had_destination and backup_dir.exists() and not destination_dir.exists():
-            backup_dir.rename(destination_dir)
+            rename_with_retry(backup_dir, destination_dir)
         raise
     else:
         if backup_dir.exists():

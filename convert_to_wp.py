@@ -8,6 +8,13 @@ from pathlib import Path
 from textwrap import dedent
 from uuid import uuid4
 
+from filesystem_safety import rename_with_retry
+
+from project_naming import (
+    sanitize_project_slug,
+    sanitize_theme_name,
+)
+
 
 TEMPLATE_CONFIGS = {
     "website": {
@@ -149,13 +156,10 @@ def parse_args() -> argparse.Namespace:
 
 
 def sanitize_project_name(project_name: str) -> str:
-    normalized = re.sub(r'[<>:"/\\|?*]+', "-", project_name.strip())
-    normalized = re.sub(r"\s+", "-", normalized)
-    normalized = re.sub(r"-{2,}", "-", normalized)
-    normalized = normalized.strip(" .-_")
-    if not normalized:
-        raise ConversionError("案件名から有効なフォルダ名を作成できませんでした。")
-    return normalized
+    try:
+        return sanitize_project_slug(project_name)
+    except ValueError as error:
+        raise ConversionError(str(error)) from error
 
 
 def read_text(path: Path) -> str:
@@ -166,14 +170,32 @@ def write_text(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
-def render_style_css(style_css_template: str, *, project_name: str) -> str:
-    theme_name_pattern = re.compile(r"^(Theme Name:\s*).*$", flags=re.IGNORECASE | re.MULTILINE)
-    replacement = rf"\1{project_name}"
+def render_style_css(
+    style_css_template: str,
+    *,
+    project_name: str,
+) -> str:
+    theme_name_pattern = re.compile(
+        r"^(Theme Name:\s*).*$",
+        flags=re.IGNORECASE | re.MULTILINE,
+    )
+    safe_theme_name = sanitize_theme_name(project_name)
 
     if theme_name_pattern.search(style_css_template):
-        return theme_name_pattern.sub(replacement, style_css_template, count=1)
+        return theme_name_pattern.sub(
+            lambda match: (
+                f"{match.group(1)}{safe_theme_name}"
+            ),
+            style_css_template,
+            count=1,
+        )
 
-    return f"/*\nTheme Name: {project_name}\n*/\n\n{style_css_template.lstrip()}"
+    return (
+        "/*\n"
+        f"Theme Name: {safe_theme_name}\n"
+        "*/\n\n"
+        f"{style_css_template.lstrip()}"
+    )
 
 
 def generate_wp_stub_files(*, base_dir: Path, project_dir: Path, project_name: str) -> list[str]:
@@ -409,13 +431,13 @@ def replace_directory_transactionally(
         f".{destination_dir.name}.wp-backup-{uuid4().hex}"
     )
 
-    destination_dir.rename(backup_dir)
+    rename_with_retry(destination_dir, backup_dir)
 
     try:
-        staging_dir.rename(destination_dir)
+        rename_with_retry(staging_dir, destination_dir)
     except Exception:
         if backup_dir.exists() and not destination_dir.exists():
-            backup_dir.rename(destination_dir)
+            rename_with_retry(backup_dir, destination_dir)
         raise
     else:
         if backup_dir.exists():
