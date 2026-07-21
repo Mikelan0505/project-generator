@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import tempfile
 import unittest
@@ -74,7 +75,15 @@ class StarterContractTests(unittest.TestCase):
         )
         js_path.write_text(
             "\n".join(
-                RUNTIME_TOKENS
+                (
+                    "const runtimeToken"
+                    f"{index} = "
+                    f"{json.dumps(token)};"
+                )
+                for index, token
+                in enumerate(
+                    RUNTIME_TOKENS
+                )
             )
             + "\n",
             encoding="utf-8",
@@ -360,6 +369,74 @@ class StarterContractTests(unittest.TestCase):
         with self.assertRaisesRegex(
             StarterContractError,
             "js-missing-hook",
+        ):
+            validate_starter_contract(
+                self.base_dir
+            )
+
+    def test_runtime_token_substrings_are_rejected(
+        self,
+    ) -> None:
+        js_path = (
+            self.dist_root
+            / "js"
+            / "core"
+            / "app.js"
+        )
+        js_path.write_text(
+            "\n".join(
+                (
+                    "const misleadingToken"
+                    f"{index} = "
+                    f"{json.dumps(token + '-extra')};"
+                )
+                for index, token
+                in enumerate(
+                    RUNTIME_TOKENS
+                )
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        self.write_contract()
+
+        with self.assertRaisesRegex(
+            StarterContractError,
+            re.escape(
+                RUNTIME_TOKENS[0]
+            ),
+        ):
+            validate_starter_contract(
+                self.base_dir
+            )
+
+    def test_runtime_tokens_in_comments_are_rejected(
+        self,
+    ) -> None:
+        js_path = (
+            self.dist_root
+            / "js"
+            / "core"
+            / "app.js"
+        )
+        js_path.write_text(
+            "\n".join(
+                (
+                    "// inactive runtime token "
+                    + json.dumps(token)
+                )
+                for token in RUNTIME_TOKENS
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        self.write_contract()
+
+        with self.assertRaisesRegex(
+            StarterContractError,
+            re.escape(
+                RUNTIME_TOKENS[0]
+            ),
         ):
             validate_starter_contract(
                 self.base_dir

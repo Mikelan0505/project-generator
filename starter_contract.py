@@ -473,6 +473,174 @@ def hash_dist_artifact_tree(
     }
 
 
+def javascript_string_literals(
+    source: str,
+) -> tuple[str, ...]:
+    literals: set[str] = set()
+    source_length = len(source)
+    index = 0
+
+    simple_escapes = {
+        "0": "\0",
+        "b": "\b",
+        "f": "\f",
+        "n": "\n",
+        "r": "\r",
+        "t": "\t",
+        "v": "\v",
+    }
+
+    while index < source_length:
+        character = source[index]
+
+        if (
+            character == "/"
+            and index + 1 < source_length
+            and source[index + 1] == "/"
+        ):
+            index += 2
+
+            while (
+                index < source_length
+                and source[index]
+                not in "\r\n"
+            ):
+                index += 1
+
+            continue
+
+        if (
+            character == "/"
+            and index + 1 < source_length
+            and source[index + 1] == "*"
+        ):
+            closing_index = source.find(
+                "*/",
+                index + 2,
+            )
+
+            if closing_index == -1:
+                break
+
+            index = closing_index + 2
+            continue
+
+        if character not in {
+            "'",
+            '"',
+            "`",
+        }:
+            index += 1
+            continue
+
+        quote = character
+        index += 1
+        value: list[str] = []
+        is_static = True
+        terminated = False
+
+        while index < source_length:
+            character = source[index]
+
+            if character == quote:
+                terminated = True
+                index += 1
+                break
+
+            if (
+                quote == "`"
+                and character == "$"
+                and index + 1 < source_length
+                and source[index + 1] == "{"
+            ):
+                is_static = False
+                value.append("${")
+                index += 2
+                continue
+
+            if character != "\\":
+                value.append(character)
+                index += 1
+                continue
+
+            index += 1
+
+            if index >= source_length:
+                break
+
+            escaped = source[index]
+
+            if escaped in "\r\n":
+                if (
+                    escaped == "\r"
+                    and index + 1 < source_length
+                    and source[index + 1] == "\n"
+                ):
+                    index += 1
+
+                index += 1
+                continue
+
+            if escaped in simple_escapes:
+                value.append(
+                    simple_escapes[escaped]
+                )
+                index += 1
+                continue
+
+            if escaped == "x":
+                digits = source[
+                    index + 1:
+                    index + 3
+                ]
+
+                if (
+                    len(digits) == 2
+                    and all(
+                        digit
+                        in "0123456789abcdefABCDEF"
+                        for digit in digits
+                    )
+                ):
+                    value.append(
+                        chr(int(digits, 16))
+                    )
+                    index += 3
+                    continue
+
+            if escaped == "u":
+                digits = source[
+                    index + 1:
+                    index + 5
+                ]
+
+                if (
+                    len(digits) == 4
+                    and all(
+                        digit
+                        in "0123456789abcdefABCDEF"
+                        for digit in digits
+                    )
+                ):
+                    value.append(
+                        chr(int(digits, 16))
+                    )
+                    index += 5
+                    continue
+
+            value.append(escaped)
+            index += 1
+
+        if terminated and is_static:
+            literals.add(
+                "".join(value)
+            )
+
+    return tuple(
+        sorted(literals)
+    )
+
+
 def validate_starter_contract(
     base_dir: Path,
 ) -> ValidatedStarter:
@@ -566,25 +734,31 @@ def validate_starter_contract(
         )
 
     js_root = repository_root / "dist" / "js"
-    js_files = sorted(js_root.rglob("*.js"))
-
-    if not js_files:
-        raise StarterContractError(
-            f"検査対象JavaScriptがありません: {js_root}"
-        )
-
-    js_content = "\n".join(
-        path.read_text(
-            encoding="utf-8",
-            errors="ignore",
-        )
-        for path in js_files
+    js_files = sorted(
+        path
+        for path in (
+            dist_root
+            / "js"
+        ).rglob("*.js")
+        if path.is_file()
     )
+
+    runtime_literals: set[str] = set()
+
+    for js_path in js_files:
+        runtime_literals.update(
+            javascript_string_literals(
+                js_path.read_text(
+                    encoding="utf-8",
+                    errors="replace",
+                )
+            )
+        )
 
     missing_tokens = [
         token
         for token in contract.runtime_tokens
-        if token not in js_content
+        if token not in runtime_literals
     ]
 
     if missing_tokens:
