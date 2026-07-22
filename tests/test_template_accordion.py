@@ -11,9 +11,15 @@ from unittest.mock import patch
 from urllib.parse import unquote, urlsplit
 
 import script
-from test_template_references import (
-    form_accessibility_errors,
-)
+
+try:
+    from .test_template_references import (
+        form_accessibility_errors,
+    )
+except ImportError:
+    from test_template_references import (
+        form_accessibility_errors,
+    )
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
