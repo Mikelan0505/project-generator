@@ -2,6 +2,14 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      document.documentElement.classList.add('has-js');
+      window.addEventListener('load', () => {
+        if (document.documentElement.dataset.revealReady !== 'true') {
+          document.documentElement.classList.remove('has-js');
+        }
+      });
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{{PAGE_TITLE}} | {{PROJECT}}</title>
     <meta
