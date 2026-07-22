@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import json
+import shutil
+import tempfile
 from collections import Counter
 from html.parser import HTMLParser
 from pathlib import Path
+from unittest.mock import patch
 from urllib.parse import unquote, urlsplit
 import unittest
 import re
+
+import script
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -22,6 +27,30 @@ NON_LABEL_REQUIRED_INPUT_TYPES = {
     "image",
     "reset",
     "submit",
+}
+HERO_OVERLAY_INTERACTIVE_TAGS = {
+    "a",
+    "button",
+    "input",
+    "select",
+    "summary",
+    "textarea",
+}
+HTML_VOID_ELEMENTS = {
+    "area",
+    "base",
+    "br",
+    "col",
+    "embed",
+    "hr",
+    "img",
+    "input",
+    "link",
+    "meta",
+    "param",
+    "source",
+    "track",
+    "wbr",
 }
 
 
@@ -73,6 +102,189 @@ def parse_template(path: Path) -> TemplateParser:
     parser.feed(path.read_text(encoding="utf-8"))
     parser.close()
     return parser
+
+
+class HeroContractParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.stack: list[
+            tuple[str, frozenset[str], int | None]
+        ] = []
+        self.overlay_interactive_elements: list[
+            tuple[int, str]
+        ] = []
+        self.hero_count = 0
+        self.hero_content_count = 0
+        self.hero_actions_count = 0
+        self.hero_classes: set[str] = set()
+        self.hero_action_links: list[
+            dict[str, object]
+        ] = []
+
+    def has_ancestor_class(
+        self,
+        class_name: str,
+    ) -> bool:
+        return any(
+            class_name in classes
+            for _, classes, _ in self.stack
+        )
+
+    def handle_starttag(
+        self,
+        tag: str,
+        attrs: list[tuple[str, str | None]],
+    ) -> None:
+        self.handle_element_start(
+            tag,
+            attrs,
+            push=tag.lower() not in HTML_VOID_ELEMENTS,
+        )
+
+    def handle_startendtag(
+        self,
+        tag: str,
+        attrs: list[tuple[str, str | None]],
+    ) -> None:
+        self.handle_element_start(
+            tag,
+            attrs,
+            push=False,
+        )
+
+    def handle_element_start(
+        self,
+        tag: str,
+        attrs: list[tuple[str, str | None]],
+        *,
+        push: bool,
+    ) -> None:
+        normalized_tag = tag.lower()
+        attributes = dict(attrs)
+        classes = frozenset(
+            (attributes.get("class") or "").split()
+        )
+        line_number, _ = self.getpos()
+        inside_overlay = self.has_ancestor_class(
+            "c-hero__overlay"
+        )
+        inside_hero = self.has_ancestor_class(
+            "c-hero"
+        )
+        inside_content = self.has_ancestor_class(
+            "c-hero__content"
+        )
+        inside_actions = self.has_ancestor_class(
+            "c-hero__actions"
+        )
+
+        if (
+            inside_overlay
+            or "c-hero__overlay" in classes
+        ) and (
+            normalized_tag
+            in HERO_OVERLAY_INTERACTIVE_TAGS
+            or "tabindex" in attributes
+        ):
+            self.overlay_interactive_elements.append(
+                (line_number, normalized_tag)
+            )
+
+        if "c-hero" in classes:
+            self.hero_count += 1
+
+        if inside_hero or "c-hero" in classes:
+            self.hero_classes.update(classes)
+
+        if (
+            "c-hero__content" in classes
+            and inside_hero
+            and not inside_overlay
+        ):
+            self.hero_content_count += 1
+
+        if (
+            "c-hero__actions" in classes
+            and inside_hero
+            and inside_content
+            and not inside_overlay
+        ):
+            self.hero_actions_count += 1
+
+        action_link_index: int | None = None
+
+        if (
+            normalized_tag == "a"
+            and inside_hero
+            and inside_content
+            and inside_actions
+            and not inside_overlay
+        ):
+            action_link_index = len(
+                self.hero_action_links
+            )
+            self.hero_action_links.append(
+                {
+                    "href": attributes.get("href"),
+                    "text": "",
+                }
+            )
+
+        if push:
+            self.stack.append(
+                (
+                    normalized_tag,
+                    classes,
+                    action_link_index,
+                )
+            )
+
+    def handle_data(self, data: str) -> None:
+        for _, _, link_index in reversed(
+            self.stack
+        ):
+            if link_index is None:
+                continue
+
+            current_text = self.hero_action_links[
+                link_index
+            ]["text"]
+            assert isinstance(current_text, str)
+            self.hero_action_links[link_index][
+                "text"
+            ] = current_text + data
+            return
+
+    def handle_endtag(self, tag: str) -> None:
+        normalized_tag = tag.lower()
+
+        for index in range(
+            len(self.stack) - 1,
+            -1,
+            -1,
+        ):
+            if self.stack[index][0] != normalized_tag:
+                continue
+
+            del self.stack[index:]
+            return
+
+
+def parse_hero_contract_text(
+    text: str,
+) -> HeroContractParser:
+    parser = HeroContractParser()
+    parser.feed(text)
+    parser.close()
+    return parser
+
+
+def parse_hero_contract(
+    path: Path,
+) -> HeroContractParser:
+    return parse_hero_contract_text(
+        path.read_text(encoding="utf-8")
+    )
 
 
 class FormAccessibilityParser(HTMLParser):
@@ -544,6 +756,194 @@ class TemplateReferenceTests(unittest.TestCase):
             duplicates,
             "\n" + "\n".join(duplicates),
         )
+
+
+class TemplateHeroContractTests(
+    unittest.TestCase
+):
+    def assert_website_hero_contract(
+        self,
+        path: Path,
+    ) -> None:
+        parser = parse_hero_contract(path)
+
+        self.assertEqual(1, parser.hero_count)
+        self.assertEqual(
+            1,
+            parser.hero_content_count,
+        )
+        self.assertEqual(
+            1,
+            parser.hero_actions_count,
+        )
+        self.assertEqual(
+            [],
+            parser.overlay_interactive_elements,
+        )
+        self.assertTrue(
+            parser.hero_classes.isdisjoint(
+                {
+                    "u-flex",
+                    "u-flex-sp-col",
+                    "u-flex-wrap",
+                }
+            )
+        )
+        self.assertEqual(
+            [
+                "./contact.html",
+                "./service.html",
+            ],
+            [
+                link["href"]
+                for link in parser.hero_action_links
+            ],
+        )
+        self.assertEqual(
+            [
+                "お問い合わせ導線を確認",
+                "サービスページを見る",
+            ],
+            [
+                " ".join(
+                    str(link["text"]).split()
+                )
+                for link in parser.hero_action_links
+            ],
+        )
+
+    def test_hero_overlays_are_non_interactive(
+        self,
+    ) -> None:
+        errors: list[str] = []
+
+        for path in sorted(
+            TEMPLATES_ROOT.rglob("*.html")
+        ):
+            parser = parse_hero_contract(path)
+            relative_path = path.relative_to(
+                TEMPLATES_ROOT
+            ).as_posix()
+
+            for line_number, tag in (
+                parser.overlay_interactive_elements
+            ):
+                errors.append(
+                    f"{relative_path}:{line_number}: "
+                    "c-hero__overlay内に"
+                    f"interactive element <{tag}>があります。"
+                )
+
+        self.assertEqual(
+            [],
+            errors,
+            "\n" + "\n".join(errors),
+        )
+
+    def test_hero_overlay_validator_rejects_interactive_elements(
+        self,
+    ) -> None:
+        parser = parse_hero_contract_text(
+            """
+            <div class="c-hero__overlay">
+              <a href="/">Link</a>
+              <button type="button">Button</button>
+              <input type="text" />
+              <select><option>Option</option></select>
+              <textarea></textarea>
+              <summary>Summary</summary>
+              <span tabindex="-1">Focusable</span>
+            </div>
+            """
+        )
+
+        self.assertEqual(
+            [
+                "a",
+                "button",
+                "input",
+                "select",
+                "textarea",
+                "summary",
+                "span",
+            ],
+            [
+                tag
+                for _, tag in (
+                    parser.overlay_interactive_elements
+                )
+            ],
+        )
+
+    def test_website_index_uses_canonical_hero_contract(
+        self,
+    ) -> None:
+        self.assert_website_hero_contract(
+            TEMPLATES_ROOT
+            / "website"
+            / "index.html"
+        )
+
+    def test_generated_website_preserves_hero_contract(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            base_dir = root / "project-generator"
+            template_dir = (
+                base_dir
+                / "templates"
+                / "website"
+            )
+            shutil.copytree(
+                TEMPLATES_ROOT / "website",
+                template_dir,
+            )
+
+            dist_root = (
+                root
+                / "sass-starter-exiga"
+                / "dist"
+            )
+            (dist_root / "css").mkdir(
+                parents=True
+            )
+            (dist_root / "js" / "core").mkdir(
+                parents=True
+            )
+            (
+                dist_root
+                / "css"
+                / "main.css"
+            ).write_text(
+                "/* test css */\n",
+                encoding="utf-8",
+            )
+            (
+                dist_root
+                / "js"
+                / "core"
+                / "app.js"
+            ).write_text(
+                "export {};\n",
+                encoding="utf-8",
+            )
+
+            with patch.object(
+                script,
+                "resolve_exiga_dist",
+                return_value=dist_root,
+            ):
+                output_dir = script.create_project(
+                    base_dir=base_dir,
+                    template_name="website",
+                    project_name="Hero Contract",
+                    force=True,
+                )
+
+            self.assert_website_hero_contract(
+                output_dir / "index.html"
+            )
 
 
 class TemplateAccessibilityTests(
