@@ -16,6 +16,7 @@ import script
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 TEMPLATES_ROOT = REPOSITORY_ROOT / "templates"
+STARTER_ROOT = REPOSITORY_ROOT.parent / "sass-starter-exiga"
 
 GENERATED_DIST_REFERENCES = {
     "dist/css/main.css",
@@ -52,6 +53,45 @@ HTML_VOID_ELEMENTS = {
     "track",
     "wbr",
 }
+DEPRECATED_PRODUCT_CLASSES = {
+    "l-grid--cards-4",
+    "text-price",
+    "text-price__prefix",
+}
+EXPECTED_SHOP_CATEGORY_IDS = [
+    "category-standard",
+    "category-seasonal",
+    "category-gift",
+]
+EXPECTED_SHOP_CATEGORY_HREFS = [
+    "#category-standard",
+    "#category-seasonal",
+    "#category-gift",
+]
+EXPECTED_SHOP_GRID_CARD_COUNTS = [9, 6, 6]
+EXPECTED_SHOP_PRODUCTS = [
+    ("スタンダードブレンド", "税込 1,080円"),
+    ("焼き菓子アソート", "税込 1,620円"),
+    ("オリジナル雑貨", "税込 880円"),
+    ("定番クッキー缶", "税込 2,480円"),
+    ("デイリーパック", "税込 756円"),
+    ("店主おすすめセット", "税込 1,980円"),
+    ("ミニギフトボックス", "税込 1,296円"),
+    ("シンプルセレクション", "税込 1,430円"),
+    ("リピート定番商品", "税込 972円"),
+    ("季節の詰め合わせ", "税込 2,160円"),
+    ("限定ロースト", "税込 1,350円"),
+    ("季節ラッピング商品", "税込 2,970円"),
+    ("季節の冷菓セット", "税込 1,890円"),
+    ("濃厚シーズンセレクト", "税込 1,480円"),
+    ("イベント限定ボックス", "税込 3,240円"),
+    ("手土産セット", "税込 2,430円"),
+    ("ラッピング対応商品", "税込 3,300円"),
+    ("ちいさな贈り物", "税込 1,100円"),
+    ("きちんと贈れる定番箱", "税込 3,780円"),
+    ("気軽な贈りものセット", "税込 1,650円"),
+    ("季節の贈答ボックス", "税込 2,860円"),
+]
 
 
 class TemplateParser(HTMLParser):
@@ -285,6 +325,299 @@ def parse_hero_contract(
     return parse_hero_contract_text(
         path.read_text(encoding="utf-8")
     )
+
+
+class ProductListingParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.stack: list[
+            tuple[str, int | None, int | None, str | None]
+        ] = []
+        self.grid_classes: list[frozenset[str]] = []
+        self.grid_card_indexes: list[list[int]] = []
+        self.card_tags: list[str] = []
+        self.card_titles: list[str] = []
+        self.card_prices: list[str] = []
+        self.card_title_counts: list[int] = []
+        self.card_price_counts: list[int] = []
+        self.category_ids: list[str] = []
+        self.category_hrefs: list[str] = []
+        self.body_classes: set[str] = set()
+
+    def current_grid_index(self) -> int | None:
+        return next(
+            (
+                grid_index
+                for _, grid_index, _, _ in reversed(
+                    self.stack
+                )
+                if grid_index is not None
+            ),
+            None,
+        )
+
+    def current_card_index(self) -> int | None:
+        return next(
+            (
+                card_index
+                for _, _, card_index, _ in reversed(
+                    self.stack
+                )
+                if card_index is not None
+            ),
+            None,
+        )
+
+    def handle_starttag(
+        self,
+        tag: str,
+        attrs: list[tuple[str, str | None]],
+    ) -> None:
+        self.handle_element_start(
+            tag,
+            attrs,
+            push=tag.lower() not in HTML_VOID_ELEMENTS,
+        )
+
+    def handle_startendtag(
+        self,
+        tag: str,
+        attrs: list[tuple[str, str | None]],
+    ) -> None:
+        self.handle_element_start(
+            tag,
+            attrs,
+            push=False,
+        )
+
+    def handle_element_start(
+        self,
+        tag: str,
+        attrs: list[tuple[str, str | None]],
+        *,
+        push: bool,
+    ) -> None:
+        normalized_tag = tag.lower()
+        attributes = dict(attrs)
+        classes = frozenset(
+            (attributes.get("class") or "").split()
+        )
+        grid_index = self.current_grid_index()
+        card_index = self.current_card_index()
+        capture: str | None = None
+
+        if normalized_tag == "body":
+            self.body_classes.update(classes)
+
+        element_id = attributes.get("id")
+
+        if (
+            normalized_tag == "section"
+            and isinstance(element_id, str)
+            and element_id.startswith("category-")
+        ):
+            self.category_ids.append(element_id)
+
+        href = attributes.get("href")
+
+        if (
+            normalized_tag == "a"
+            and isinstance(href, str)
+            and href.startswith("#category-")
+        ):
+            self.category_hrefs.append(href)
+
+        if "c-product-grid" in classes:
+            grid_index = len(self.grid_classes)
+            self.grid_classes.append(classes)
+            self.grid_card_indexes.append([])
+
+        if "c-product-card" in classes:
+            card_index = len(self.card_titles)
+            self.card_tags.append(normalized_tag)
+            self.card_titles.append("")
+            self.card_prices.append("")
+            self.card_title_counts.append(0)
+            self.card_price_counts.append(0)
+
+            if grid_index is not None:
+                self.grid_card_indexes[
+                    grid_index
+                ].append(card_index)
+
+        if (
+            "c-product-card__title" in classes
+            and card_index is not None
+        ):
+            self.card_title_counts[card_index] += 1
+            capture = "title"
+
+        if (
+            "c-product-card__price" in classes
+            and card_index is not None
+        ):
+            self.card_price_counts[card_index] += 1
+            capture = "price"
+
+        if push:
+            self.stack.append(
+                (
+                    normalized_tag,
+                    grid_index,
+                    card_index,
+                    capture,
+                )
+            )
+
+    def handle_data(self, data: str) -> None:
+        for _, _, card_index, capture in reversed(
+            self.stack
+        ):
+            if card_index is None or capture is None:
+                continue
+
+            target = (
+                self.card_titles
+                if capture == "title"
+                else self.card_prices
+            )
+            target[card_index] += data
+            return
+
+    def handle_endtag(self, tag: str) -> None:
+        normalized_tag = tag.lower()
+
+        for index in range(
+            len(self.stack) - 1,
+            -1,
+            -1,
+        ):
+            if self.stack[index][0] != normalized_tag:
+                continue
+
+            del self.stack[index:]
+            return
+
+
+def parse_product_listing_text(
+    text: str,
+) -> ProductListingParser:
+    parser = ProductListingParser()
+    parser.feed(text)
+    parser.close()
+    return parser
+
+
+def parse_product_listing(
+    path: Path,
+) -> ProductListingParser:
+    return parse_product_listing_text(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def normalized_text(text: str) -> str:
+    return " ".join(text.split())
+
+
+def product_listing_contract_errors(
+    text: str,
+    *,
+    expected_grid_count: int,
+    expected_product_count: int,
+) -> list[str]:
+    template_parser = TemplateParser()
+    template_parser.feed(text)
+    template_parser.close()
+    parser = parse_product_listing_text(text)
+    errors = [
+        f"deprecated-class:{class_name}"
+        for class_name in sorted(
+            DEPRECATED_PRODUCT_CLASSES
+            & set(template_parser.classes)
+        )
+    ]
+
+    if len(parser.grid_classes) != expected_grid_count:
+        errors.append(
+            "product-grid-count:"
+            f"expected={expected_grid_count} "
+            f"actual={len(parser.grid_classes)}"
+        )
+
+    for index, classes in enumerate(
+        parser.grid_classes,
+        start=1,
+    ):
+        if "c-product-grid--cols-4" not in classes:
+            errors.append(
+                f"product-grid-{index}:"
+                "missing c-product-grid--cols-4"
+            )
+
+    if len(parser.card_titles) != expected_product_count:
+        errors.append(
+            "product-card-count:"
+            f"expected={expected_product_count} "
+            f"actual={len(parser.card_titles)}"
+        )
+
+    for index, (
+        tag,
+        title,
+        price,
+        title_count,
+        price_count,
+    ) in enumerate(
+        zip(
+            parser.card_tags,
+            parser.card_titles,
+            parser.card_prices,
+            parser.card_title_counts,
+            parser.card_price_counts,
+            strict=True,
+        ),
+        start=1,
+    ):
+        if tag != "article":
+            errors.append(
+                f"product-card-{index}:root is not article"
+            )
+
+        if title_count != 1 or not normalized_text(title):
+            errors.append(
+                f"product-card-{index}:missing title"
+            )
+
+        if price_count != 1 or not normalized_text(price):
+            errors.append(
+                f"product-card-{index}:missing price"
+            )
+
+    return errors
+
+
+def css_rule_bodies(
+    text: str,
+    selector: str,
+) -> list[str]:
+    bodies: list[str] = []
+
+    for match in re.finditer(
+        r"(?P<selectors>[^{}]+)\{(?P<body>[^{}]*)\}",
+        text,
+    ):
+        selectors = {
+            candidate.strip()
+            for candidate in match.group(
+                "selectors"
+            ).split(",")
+        }
+
+        if selector in selectors:
+            bodies.append(match.group("body"))
+
+    return bodies
 
 
 class FormAccessibilityParser(HTMLParser):
@@ -944,6 +1277,310 @@ class TemplateHeroContractTests(
             self.assert_website_hero_contract(
                 output_dir / "index.html"
             )
+
+
+class TemplateProductContractTests(
+    unittest.TestCase
+):
+    def assert_shop_product_contract(
+        self,
+        path: Path,
+        *,
+        require_generated_body_classes: bool = False,
+    ) -> ProductListingParser:
+        text = path.read_text(encoding="utf-8")
+        parser = parse_product_listing_text(text)
+
+        self.assertEqual(
+            [],
+            product_listing_contract_errors(
+                text,
+                expected_grid_count=3,
+                expected_product_count=21,
+            ),
+        )
+        self.assertEqual(
+            EXPECTED_SHOP_GRID_CARD_COUNTS,
+            [
+                len(card_indexes)
+                for card_indexes in (
+                    parser.grid_card_indexes
+                )
+            ],
+        )
+        self.assertEqual(
+            EXPECTED_SHOP_PRODUCTS,
+            [
+                (
+                    normalized_text(title),
+                    normalized_text(price),
+                )
+                for title, price in zip(
+                    parser.card_titles,
+                    parser.card_prices,
+                    strict=True,
+                )
+            ],
+        )
+        self.assertEqual(
+            EXPECTED_SHOP_CATEGORY_IDS,
+            parser.category_ids,
+        )
+        self.assertEqual(
+            EXPECTED_SHOP_CATEGORY_HREFS,
+            parser.category_hrefs,
+        )
+
+        if require_generated_body_classes:
+            self.assertTrue(
+                {
+                    "t-shop",
+                    "p-products",
+                }.issubset(parser.body_classes)
+            )
+
+        return parser
+
+    def test_deprecated_product_classes_are_absent_from_templates(
+        self,
+    ) -> None:
+        errors: list[str] = []
+
+        for path in sorted(
+            TEMPLATES_ROOT.rglob("*.html")
+        ):
+            deprecated_classes = sorted(
+                DEPRECATED_PRODUCT_CLASSES
+                & set(parse_template(path).classes)
+            )
+
+            if deprecated_classes:
+                errors.append(
+                    f"{path.relative_to(TEMPLATES_ROOT)}: "
+                    f"{', '.join(deprecated_classes)}"
+                )
+
+        self.assertEqual(
+            [],
+            errors,
+            "\n" + "\n".join(errors),
+        )
+
+    def test_product_listing_validator_rejects_invalid_contracts(
+        self,
+    ) -> None:
+        valid_markup = """
+        <div class="c-product-grid c-product-grid--cols-4">
+          <article class="c-product-card">
+            <h3 class="c-product-card__title">Product A</h3>
+            <p class="c-product-card__price">100 yen</p>
+          </article>
+          <article class="c-product-card">
+            <h3 class="c-product-card__title">Product B</h3>
+            <p class="c-product-card__price">200 yen</p>
+          </article>
+        </div>
+        """
+        invalid_cases = {
+            "missing-grid-modifier": (
+                valid_markup.replace(
+                    " c-product-grid--cols-4",
+                    "",
+                    1,
+                ),
+                "missing c-product-grid--cols-4",
+            ),
+            "missing-title": (
+                valid_markup.replace(
+                    "c-product-card__title",
+                    "product-title",
+                    1,
+                ),
+                "missing title",
+            ),
+            "missing-price": (
+                valid_markup.replace(
+                    "c-product-card__price",
+                    "product-price",
+                    1,
+                ),
+                "missing price",
+            ),
+            "deprecated-class": (
+                valid_markup.replace(
+                    "c-product-card__price",
+                    "c-product-card__price text-price",
+                    1,
+                ),
+                "deprecated-class:text-price",
+            ),
+            "missing-product": (
+                valid_markup.replace(
+                    """
+          <article class="c-product-card">
+            <h3 class="c-product-card__title">Product B</h3>
+            <p class="c-product-card__price">200 yen</p>
+          </article>""",
+                    "",
+                    1,
+                ),
+                "product-card-count:expected=2 actual=1",
+            ),
+        }
+
+        for name, (markup, expected_error) in (
+            invalid_cases.items()
+        ):
+            with self.subTest(name=name):
+                errors = product_listing_contract_errors(
+                    markup,
+                    expected_grid_count=1,
+                    expected_product_count=2,
+                )
+                self.assertTrue(
+                    any(
+                        expected_error in error
+                        for error in errors
+                    ),
+                    errors,
+                )
+
+    def test_shop_products_use_canonical_product_contract(
+        self,
+    ) -> None:
+        self.assert_shop_product_contract(
+            TEMPLATES_ROOT
+            / "shop"
+            / "products.html"
+        )
+
+    def test_generated_shop_preserves_product_contract(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            base_dir = root / "project-generator"
+            template_dir = (
+                base_dir
+                / "templates"
+                / "shop"
+            )
+            shutil.copytree(
+                TEMPLATES_ROOT / "shop",
+                template_dir,
+            )
+            starter_dist = STARTER_ROOT / "dist"
+
+            with patch.object(
+                script,
+                "resolve_exiga_dist",
+                return_value=starter_dist,
+            ):
+                output_dir = script.create_project(
+                    base_dir=base_dir,
+                    template_name="shop",
+                    project_name="Product Contract",
+                    force=True,
+                )
+
+            self.assert_shop_product_contract(
+                output_dir / "products.html",
+                require_generated_body_classes=True,
+            )
+
+            for relative_path in (
+                Path("css/main.css"),
+                Path("js/core/app.js"),
+            ):
+                self.assertEqual(
+                    (
+                        starter_dist / relative_path
+                    ).read_bytes(),
+                    (
+                        output_dir
+                        / "dist"
+                        / relative_path
+                    ).read_bytes(),
+                )
+
+    def test_product_grid_responsive_contract_matches_starter(
+        self,
+    ) -> None:
+        grid_source = (
+            STARTER_ROOT
+            / "src/scss/components/grid/_grid-product.scss"
+        ).read_text(encoding="utf-8")
+        breakpoint_source = (
+            STARTER_ROOT
+            / "src/scss/abstracts/_breakpoints.scss"
+        ).read_text(encoding="utf-8")
+        compiled_css = (
+            STARTER_ROOT / "dist/css/main.css"
+        ).read_text(encoding="utf-8")
+        desktop_source, responsive_source = (
+            grid_source.split(
+                "@include u.mq-down(md)",
+                maxsplit=1,
+            )
+        )
+        desktop_bodies = css_rule_bodies(
+            desktop_source,
+            ".c-product-grid--cols-4",
+        )
+        responsive_bodies = css_rule_bodies(
+            responsive_source,
+            ".c-product-grid--cols-4",
+        )
+        compiled_bodies = css_rule_bodies(
+            compiled_css,
+            ".c-product-grid--cols-4",
+        )
+
+        self.assertTrue(
+            any(
+                "grid-template-columns: "
+                "var(--ui-grid-template-cols-4)"
+                in body
+                for body in desktop_bodies
+            ),
+            desktop_bodies,
+        )
+        self.assertTrue(
+            any(
+                "grid-template-columns: "
+                "var(--ui-grid-template-cols-2)"
+                in body
+                for body in responsive_bodies
+            ),
+            responsive_bodies,
+        )
+        self.assertRegex(
+            breakpoint_source,
+            r"md:\s*768px",
+        )
+        self.assertTrue(
+            any(
+                "grid-template-columns: "
+                "var(--ui-grid-template-cols-4)"
+                in body
+                for body in compiled_bodies
+            ),
+            compiled_bodies,
+        )
+        self.assertTrue(
+            any(
+                "grid-template-columns: "
+                "var(--ui-grid-template-cols-2)"
+                in body
+                for body in compiled_bodies
+            ),
+            compiled_bodies,
+        )
+        self.assertRegex(
+            compiled_css,
+            r"@media[^\r\n{]*"
+            r"\(width\s*<=\s*767px\)",
+        )
 
 
 class TemplateAccessibilityTests(
