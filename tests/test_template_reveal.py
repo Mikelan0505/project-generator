@@ -81,7 +81,7 @@ EXPECTED_REVEAL_SNAPSHOT = (
             "u-reveal-up",
         ),
         "flow-title",
-        ("flow-list", "flow-list--arrow"),
+        ("flow-list",),
         "ヒアリング",
         "要件、課題、優先順位を確認します。",
     ),
@@ -94,7 +94,7 @@ EXPECTED_REVEAL_SNAPSHOT = (
             "u-reveal-up",
         ),
         "flow-title",
-        ("flow-list", "flow-list--arrow"),
+        ("flow-list",),
         "提案",
         "進め方、内容、概算、体制などを整理して提示します。",
     ),
@@ -107,7 +107,7 @@ EXPECTED_REVEAL_SNAPSHOT = (
             "u-reveal-up",
         ),
         "flow-title",
-        ("flow-list", "flow-list--arrow"),
+        ("flow-list",),
         "制作・実行",
         "決定内容に沿って制作や実作業を進行します。",
     ),
@@ -120,7 +120,7 @@ EXPECTED_REVEAL_SNAPSHOT = (
             "u-reveal-up",
         ),
         "flow-title",
-        ("flow-list", "flow-list--arrow"),
+        ("flow-list",),
         "納品・運用",
         "公開後や導入後の運用支援がある場合はここに記載します。",
     ),
@@ -376,7 +376,7 @@ def reveal_snapshot(text: str) -> tuple[tuple[object, ...], ...]:
                     if parent is not None
                     else ()
                 ),
-                class_text(target, "flow-list__title-text"),
+                class_text(target, "flow-list__title"),
                 class_text(target, "flow-list__text"),
             )
         )
