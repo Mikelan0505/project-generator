@@ -204,6 +204,14 @@ python convert_to_wp.py --project sample-lp --template lp
 - 各ページは `<?php get_header(); ?>` と `<?php get_footer(); ?>` の最小形に置き換える
 - `main` 内の section 分割や `template-parts` 化はまだ行わない
 
+### 問い合わせフォームの送信処理
+
+`website` / `shop` の `contact.html` にある `action="#"` は、送信先が未設定であることを示す placeholder です。これは現在のテンプレート上の初期値であり、form action の固定仕様ではありません。
+
+`project-generator` は、static HTML の生成時に form の server-side submission 処理を生成しません。WordPress 変換でも、form handler、nonce、mail 送信、AJAX 処理は追加しません。
+
+公開前に、案件固有の送信先と server-side 処理を実装してください。入力 validation、spam 対策、CSRF 対策、完了画面も案件側で設計する必要があります。placeholder のまま公開しても問い合わせ送信機能は成立しません。
+
 ### dist 更新
 
 生成済み案件の `dist/css` と `dist/js` を最新化したい場合:
