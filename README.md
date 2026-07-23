@@ -214,13 +214,45 @@ python convert_to_wp.py --project sample-lp --template lp
 
 ### dist 更新
 
-生成済み案件の `dist/css` と `dist/js` を最新化したい場合:
+生成済み案件の `dist/css` と `dist/js` を最新化する場合は、PowerShell wrapper を使用します。
+`outputs` 内の有効な案件が1件だけなら、その案件を自動選択します。
 
-```bash
-python script.py -r -p sample-site
+```powershell
+.\sync-dist.ps1
 ```
 
-これは `sass-starter-exiga/dist/css` と `sass-starter-exiga/dist/js` を、既存の `outputs/sample-site/dist/` に再コピーするためのコマンドです。HTML やテンプレ本文は変更しません。
+案件名を位置指定または名前付きparameterで明示することもできます。
+
+```powershell
+.\sync-dist.ps1 sample-site
+.\sync-dist.ps1 -Project sample-site
+```
+
+`outputs` 内に複数案件がある場合は自動選択せず、案件名の指定を要求します。
+
+VS Codeから実行する場合は、`Ctrl+Shift+P`でコマンドパレットを開き、
+`Tasks: Run Task`から次のいずれかを選択します。
+
+- `Project Generator: Sync dist (auto)`
+- `Project Generator: Sync dist (project)`
+
+`outputs` 内に複数案件がある場合は、案件名を入力する
+`Project Generator: Sync dist (project)`を使用してください。
+どちらのtaskも内部ではrepository rootの`sync-dist.ps1`を呼び出します。
+
+既存のPython commandは、正式な低level interfaceとして引き続き使用できます。
+
+```bash
+python script.py --refresh-dist --project sample-site
+```
+
+この処理は `sass-starter-exiga/dist/css` と `sass-starter-exiga/dist/js` を、
+既存の `outputs/sample-site/dist/` に再コピーします。
+
+- HTMLは変更しない
+- PHPは変更しない
+- template内容は再同期しない
+- 既存案件全体は再生成しない
 
 ## script.py がやること
 
