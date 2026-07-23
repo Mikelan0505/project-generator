@@ -1,0 +1,156 @@
+{
+  "version": "2.0.0",
+  "inputs": [
+    {
+      "id": "pgProjectName",
+      "type": "promptString",
+      "description": "案件名を入力してください",
+      "default": ""
+    },
+    {
+      "id": "syncDistProject",
+      "type": "promptString",
+      "description": "更新するoutputs内の案件名",
+      "default": ""
+    }
+  ],
+  "tasks": [
+    {
+      "label": "pg: refresh dist",
+      "type": "shell",
+      "command": "python",
+      "args": ["script.py", "-r", "-p", "${input:pgProjectName}"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "pg: regenerate website (force)",
+      "type": "shell",
+      "command": "python",
+      "args": ["script.py", "-t", "website", "-p", "${input:pgProjectName}", "-f"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "pg: regenerate shop (force)",
+      "type": "shell",
+      "command": "python",
+      "args": ["script.py", "-t", "shop", "-p", "${input:pgProjectName}", "-f"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "pg: regenerate lp (force)",
+      "type": "shell",
+      "command": "python",
+      "args": ["script.py", "-t", "lp", "-p", "${input:pgProjectName}", "-f"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "pg: convert website to wp",
+      "type": "shell",
+      "command": "python",
+      "args": ["convert_to_wp.py", "--project", "${input:pgProjectName}", "--template", "website"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "pg: convert shop to wp",
+      "type": "shell",
+      "command": "python",
+      "args": ["convert_to_wp.py", "--project", "${input:pgProjectName}", "--template", "shop"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "pg: convert lp to wp",
+      "type": "shell",
+      "command": "python",
+      "args": ["convert_to_wp.py", "--project", "${input:pgProjectName}", "--template", "lp"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "pg: website full flow",
+      "type": "shell",
+      "command": "python",
+      "args": [
+        "-c",
+        "import subprocess, sys; subprocess.run(['python','script.py','-t','website','-p','${input:pgProjectName}','-f'], check=True); subprocess.run(['python','convert_to_wp.py','--project','${input:pgProjectName}','--template','website'], check=True)"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "pg: shop full flow",
+      "type": "shell",
+      "command": "python",
+      "args": [
+        "-c",
+        "import subprocess, sys; subprocess.run(['python','script.py','-t','shop','-p','${input:pgProjectName}','-f'], check=True); subprocess.run(['python','convert_to_wp.py','--project','${input:pgProjectName}','--template','shop'], check=True)"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "pg: lp full flow",
+      "type": "shell",
+      "command": "python",
+      "args": [
+        "-c",
+        "import subprocess, sys; subprocess.run(['python','script.py','-t','lp','-p','${input:pgProjectName}','-f'], check=True); subprocess.run(['python','convert_to_wp.py','--project','${input:pgProjectName}','--template','lp'], check=True)"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Project Generator: Sync dist (auto)",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\sync-dist.ps1"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Project Generator: Sync dist (project)",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\sync-dist.ps1",
+        "-Project",
+        "${input:syncDistProject}"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}

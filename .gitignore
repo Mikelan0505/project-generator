@@ -6,4 +6,5 @@ __pycache__/
 outputs/
 
 # Editor
-.vscode/
+.vscode/*
+!.vscode/tasks.json
