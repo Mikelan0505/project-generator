@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repositoryName": "sass-starter-exiga",
-  "requiredCommit": "d35db78d2bdaeb38399e78f3904afe39a088aa96",
+  "requiredCommit": "69f8b003df810c9468b37dc2e26fa3eba7861bdb",
   "requiredAssets": [
     "dist/css/main.css",
     "dist/js/core/app.js"
