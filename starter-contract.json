@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repositoryName": "sass-starter-exiga",
-  "requiredCommit": "69f8b003df810c9468b37dc2e26fa3eba7861bdb",
+  "requiredCommit": "8513d320563751e5a0c3087732fdb93c40d58284",
   "requiredAssets": [
     "dist/css/main.css",
     "dist/js/core/app.js"
@@ -13,9 +13,9 @@
     ".js-reveal",
     "data-open"
   ],
-  "distTreeSha256": "17b1119e2ff546b46998a17106ee826fe56ea5d695967128b4448160f3e8e11c",
+  "distTreeSha256": "208fab5f8ff857151043c7dc9a13874d808a435f34004d7ba507f2ece571725f",
   "requiredAssetSha256": {
-    "dist/css/main.css": "f009c02c1ac5e89da3c493ae6422fa6075c06f028c612f20fd69b3b12167a419",
+    "dist/css/main.css": "2e471d312efef720b22c332a03561a5094286b0b586fca5287d99d5b3d08875c",
     "dist/js/core/app.js": "0cca03d18ee823a86beb7ce4cdb3abe0cecea00f5fcde60667529e1a928bcb6c"
   },
   "copiedDistRoots": [
