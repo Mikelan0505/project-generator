@@ -602,22 +602,69 @@ def css_rule_bodies(
     selector: str,
 ) -> list[str]:
     bodies: list[str] = []
+    normalized_selector = re.sub(
+        r"(?<=\S)\s*>\s*(?=\S)",
+        ">",
+        selector.strip(),
+    )
 
     for match in re.finditer(
         r"(?P<selectors>[^{}]+)\{(?P<body>[^{}]*)\}",
         text,
     ):
         selectors = {
-            candidate.strip()
+            re.sub(
+                r"(?<=\S)\s*>\s*(?=\S)",
+                ">",
+                candidate.strip(),
+            )
             for candidate in match.group(
                 "selectors"
             ).split(",")
         }
 
-        if selector in selectors:
+        if normalized_selector in selectors:
             bodies.append(match.group("body"))
 
     return bodies
+
+
+def has_declaration(
+    bodies: list[str],
+    property_name: str,
+    value: str,
+) -> bool:
+    function_pattern = re.compile(
+        r"\b(?:minmax|min)\([^()]*\)"
+    )
+
+    def normalize_value(raw_value: str) -> str:
+        return function_pattern.sub(
+            lambda match: re.sub(
+                r"\s*,\s*",
+                ",",
+                match.group(0),
+            ),
+            raw_value.strip(),
+        )
+
+    expected_value = normalize_value(value)
+
+    for body in bodies:
+        for declaration in body.split(";"):
+            actual_property, separator, actual_value = (
+                declaration.partition(":")
+            )
+
+            if (
+                separator
+                and actual_property.strip() == property_name
+                and normalize_value(actual_value)
+                == expected_value
+            ):
+                return True
+
+    return False
 
 
 class FormAccessibilityParser(HTMLParser):
@@ -842,6 +889,71 @@ def normalized_contract_path(raw_path: str) -> str:
 
 
 class TemplateReferenceTests(unittest.TestCase):
+    def test_css_contract_helpers_allow_only_minification(
+        self,
+    ) -> None:
+        expanded_css = """
+        .fixture > * {
+          display: grid;
+          inline-size: min(100%, 17.5rem);
+          grid-template-columns: minmax(0, 1fr) auto;
+        }
+        """
+        minified_css = (
+            ".fixture>*{display:grid;"
+            "inline-size:min(100%,17.5rem);"
+            "grid-template-columns:minmax(0,1fr) auto}"
+        )
+
+        for source, selector in (
+            (expanded_css, ".fixture>*"),
+            (minified_css, ".fixture > *"),
+        ):
+            bodies = css_rule_bodies(source, selector)
+
+            self.assertTrue(
+                has_declaration(bodies, "display", "grid")
+            )
+            self.assertTrue(
+                has_declaration(
+                    bodies,
+                    "inline-size",
+                    "min(100%, 17.5rem)",
+                )
+            )
+            self.assertTrue(
+                has_declaration(
+                    bodies,
+                    "grid-template-columns",
+                    "minmax(0, 1fr) auto",
+                )
+            )
+            self.assertFalse(
+                has_declaration(bodies, "display", "flex")
+            )
+            self.assertFalse(
+                has_declaration(
+                    bodies,
+                    "block-size",
+                    "min(100%, 17.5rem)",
+                )
+            )
+            self.assertFalse(
+                has_declaration(
+                    bodies,
+                    "inline-size",
+                    "min(100%, 18rem)",
+                )
+            )
+
+        descendant_css = ".fixture *{display:grid}"
+        self.assertFalse(
+            css_rule_bodies(
+                descendant_css,
+                ".fixture > *",
+            )
+        )
+
     def test_local_references_resolve(self) -> None:
         template_files = sorted(
             TEMPLATES_ROOT.rglob("*.html")
@@ -1559,20 +1671,18 @@ class TemplateProductContractTests(
             r"md:\s*768px",
         )
         self.assertTrue(
-            any(
-                "grid-template-columns: "
-                "var(--ui-grid-template-cols-4)"
-                in body
-                for body in compiled_bodies
+            has_declaration(
+                compiled_bodies,
+                "grid-template-columns",
+                "var(--ui-grid-template-cols-4)",
             ),
             compiled_bodies,
         )
         self.assertTrue(
-            any(
-                "grid-template-columns: "
-                "var(--ui-grid-template-cols-2)"
-                in body
-                for body in compiled_bodies
+            has_declaration(
+                compiled_bodies,
+                "grid-template-columns",
+                "var(--ui-grid-template-cols-2)",
             ),
             compiled_bodies,
         )

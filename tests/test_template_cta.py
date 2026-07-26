@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 import shutil
 import tempfile
 import unittest
@@ -21,7 +20,9 @@ try:
         walk,
     )
     from .test_template_references import (
+        css_rule_bodies,
         form_accessibility_errors,
+        has_declaration,
     )
 except ImportError:
     from test_template_accordion import (
@@ -34,7 +35,9 @@ except ImportError:
         walk,
     )
     from test_template_references import (
+        css_rule_bodies,
         form_accessibility_errors,
+        has_declaration,
     )
 
 
@@ -425,39 +428,6 @@ def cta_contract_errors(
             )
 
     return errors
-
-
-def css_rule_bodies(
-    text: str,
-    selector: str,
-) -> list[str]:
-    bodies: list[str] = []
-
-    for match in re.finditer(
-        r"(?P<selectors>[^{}]+)\{(?P<body>[^{}]*)\}",
-        text,
-    ):
-        selectors = {
-            candidate.strip()
-            for candidate in match.group("selectors").split(",")
-        }
-
-        if selector in selectors:
-            bodies.append(match.group("body"))
-
-    return bodies
-
-
-def has_declaration(
-    bodies: list[str],
-    property_name: str,
-    value: str,
-) -> bool:
-    pattern = re.compile(
-        rf"{re.escape(property_name)}\s*:\s*"
-        rf"{re.escape(value)}\s*;"
-    )
-    return any(pattern.search(body) for body in bodies)
 
 
 def body_classes(text: str) -> set[str]:
