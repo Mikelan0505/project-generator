@@ -285,11 +285,16 @@ def expected_snapshots(
             project_name=project_name,
         )
     ]
+    grid_variant = (
+        "l-grid--cards-2xl-3"
+        if path == "shop/about.html"
+        else "l-grid--cards-3"
+    )
     grid_parent = (
         "div",
         (
             "l-grid",
-            "l-grid--cards-3",
+            grid_variant,
             "l-grid--cards-uniform",
         ),
     )
