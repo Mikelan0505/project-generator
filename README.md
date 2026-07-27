@@ -33,6 +33,7 @@
 
 ```text
 project-generator/
+├─ .htmlvalidate.json
 ├─ docs/
 │  └─ project-generator-handover.md
 ├─ outputs/
@@ -59,6 +60,8 @@ project-generator/
 │  ├─ style.css
 │  └─ index.php
 ├─ convert_to_wp.py
+├─ package-lock.json
+├─ package.json
 ├─ README.md
 └─ script.py
 ```
@@ -329,6 +332,24 @@ GitHub/
 working treeがcleanであることを確認してください。
 `starter-contract.json`は必須であり、欠落・破損・読み取り不能の場合は
 生成と`--refresh-dist`を開始しません。
+
+### HTML検証
+
+HTML検証にはNode.js `>=22.16.0 <23`とnpm `10.9.2`を使用します。
+初回または`package-lock.json`更新後は、次のコマンドで依存関係を
+lockfileどおりにインストールします。
+
+    npm ci --ignore-scripts
+
+標準HTML検証コマンドは次のとおりです。
+
+    npm run lint:html
+
+標準対象は`templates/**/*.html`と`outputs/sample/**/*.html`です。
+任意の`outputs`内生成案件は標準scriptで一括検証せず、必要に応じて
+案件単位で個別検証してください。
+
+HTML検証は、次項のPython回帰テストとは別の品質ゲートです。
 
 ### 回帰テスト
 

@@ -1,0 +1,14 @@
+{
+  "name": "project-generator",
+  "private": true,
+  "engines": {
+    "node": ">=22.16.0 <23"
+  },
+  "packageManager": "npm@10.9.2",
+  "scripts": {
+    "lint:html": "html-validate \"templates/**/*.html\" \"outputs/sample/**/*.html\""
+  },
+  "devDependencies": {
+    "html-validate": "10.17.0"
+  }
+}
