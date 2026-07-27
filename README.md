@@ -36,7 +36,8 @@ project-generator/
 ├─ .htmlvalidate.json
 ├─ docs/
 │  └─ project-generator-handover.md
-├─ outputs/
+├─ outputs/                  # Git管理外の生成物
+│  └─ sample/               # HTML検証時に再生成する破棄可能なsample
 ├─ templates/
 │  ├─ lp/
 │  │  ├─ assets/
@@ -312,6 +313,10 @@ GitHub/
 ## outputs について
 
 `outputs/` は生成物置き場です。Git 管理外で扱う想定です。
+`outputs/sample`はHTML検証専用の破棄可能な生成物であり、
+`npm run lint:html`のたびに現在のtemplateとStarterから再生成されます。
+`outputs/sample`へ手作業の案件データを置かないでください。
+その他の任意の`outputs`内案件は、標準検証scriptの対象外です。
 
 ## 今回採用していないもの
 
@@ -345,11 +350,21 @@ lockfileどおりにインストールします。
 
     npm run lint:html
 
-標準対象は`templates/**/*.html`と`outputs/sample/**/*.html`です。
-任意の`outputs`内生成案件は標準scriptで一括検証せず、必要に応じて
-案件単位で個別検証してください。
+このコマンドは`templates/**/*.html`を先に検証し、成功した場合だけ
+`outputs/sample`を現在のtemplateとStarterから再生成して、
+`outputs/sample/**/*.html`を検証します。
+`outputs/sample`はHTML検証専用の破棄可能な生成物です。
+手作業の案件データは置かないでください。
 
-HTML検証は、次項のPython回帰テストとは別の品質ゲートです。
+その他の任意の`outputs`内生成案件は標準scriptで一括検証せず、
+必要に応じて案件単位で個別検証してください。
+
+統合ローカル検証コマンドは次のとおりです。
+
+    npm run check
+
+HTML検証とPython回帰テストは独立した品質ゲートとして、
+`check`内でこの順番に実行されます。
 
 ### 回帰テスト
 

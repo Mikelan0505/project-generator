@@ -40,6 +40,8 @@ class DocumentationSafetyTests(
                 "python -m unittest "
                 "discover -s tests -q"
             ),
+            "npm run check",
+            "HTML検証専用の破棄可能な生成物",
             "PROJECT_GENERATOR_PHP",
             "starter-contract.json",
             "requiredCommit",
@@ -85,6 +87,7 @@ class DocumentationSafetyTests(
                 "python -m unittest "
                 "discover -s tests -q"
             ),
+            "npm run check",
             "git diff --check",
         )
 

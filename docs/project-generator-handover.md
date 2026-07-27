@@ -430,7 +430,15 @@ pre-swap cleanup失敗で残ったstagingも、次回scannerの停止対象に�
 
 ### 検証コマンド
 
-正式な回帰テストコマンドは次のとおりです。
+統合ローカル検証コマンドは次のとおりです。
+
+    npm run check
+
+HTML検証では`outputs/sample`を現在のtemplateとStarterから再生成します。
+`outputs/sample`は破棄可能な検証専用生成物であり、
+手作業の案件データを置いてはいけません。
+
+正式なPython単体回帰テストコマンドは引き続き次のとおりです。
 
     python -m unittest discover -s tests -q
 
