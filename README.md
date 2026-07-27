@@ -57,6 +57,8 @@ project-generator/
 │     ├─ about.html
 │     ├─ service.html
 │     └─ contact.html
+├─ tools/
+│  └─ public_release_check.py
 ├─ wp-stubs/
 │  ├─ style.css
 │  └─ index.php
@@ -365,6 +367,84 @@ lockfileどおりにインストールします。
 
 HTML検証とPython回帰テストは独立した品質ゲートとして、
 `check`内でこの順番に実行されます。
+
+### 実案件の公開前検査
+
+`npm run check:public`は、サーバーへ公開する実案件にplaceholder、
+開発用URL、未設定form、SEO不足、参照切れ、公開禁止file、HTML構文違反が
+残っていないかを確認する独立した品質ゲートです。
+Generator自身を検証する`npm run check`には組み込んでいません。
+
+`--root`にはrepositoryや`outputs`全体ではなく、
+「サーバーへ公開する予定のfile群」だけが入ったdirectoryを指定します。
+`--base-url`には、例示値ではなく実案件のHTTPS本番URLを指定してください。
+本番サイトがsubdirectory配下の場合も、そのpathまで含めます。
+
+PowerShellでの基本例:
+
+```powershell
+npm run check:public -- --root "C:\path\to\client-project" --base-url "https://www.client-site.jp"
+```
+
+空白・日本語を含むpathとsubdirectory構成の例:
+
+```powershell
+npm run check:public -- --root "C:\案件\公開 データ\株式会社サンプル" --base-url "https://www.client-site.jp/corporate/"
+```
+
+上記のpath、domain、案件名は説明用の例示であり、そのまま実行する値では
+ありません。案件ごとの実在する公開directoryと本番URLへ置き換えてください。
+`--root`は絶対pathと、現在のdirectoryを基準にした相対pathの両方を扱えます。
+
+検査は公開対象を一切変更しないread-only処理です。問題を1件見つけても
+停止せず、検査可能な全fileから検出事項を収集し、相対path、行番号、
+RULE_ID、理由の固定順で表示します。
+
+終了codeの意味:
+
+- `0`: 対象HTMLが1件以上あり、公開停止事項を検出しなかった
+- `1`: 公開を止める検出事項が1件以上あった
+- `2`: 引数、対象path、Node.js、local html-validateなどの使用上のエラーで
+  検査を完了できなかった
+
+主な検査対象:
+
+- HTML、CSS、JavaScript、JSON、XML、PHP、SVG、CSV、TSV、YAMLと
+  `.htaccess`など、拡張子または既知のfile名からtextと判定できる公開file
+- `{{...}}`、`20XX`、`〇〇`、example domain、既知のstarter説明文などの
+  未置換・ダミー情報
+- form actionの未設定、空値、fragment、`javascript:`と相対送信先の参照切れ
+- localhost、loopback address、`file://`などの開発用URL
+- 各HTMLのtitle、description、canonical、OGPと、base URLとの整合
+- `href`、`src`、`srcset`、`poster`、同一page内fragment、同一site内参照
+- credential、archive、backup、transaction残骸、Generator manifestなどの
+  公開禁止file
+- UTF-8読み取りと、localの`node_modules/html-validate`によるHTML構文
+
+HTML構文検査はlocalにinstall済みの`html-validate`だけを使用します。
+Node.jsまたはlocal packageがない場合はskipせず終了code 2とし、
+`npx`やnetworkからの自動downloadへfallbackしません。
+
+画像などのbinary fileは文字列として読みませんが、HTMLからの参照先として
+存在を確認します。`mailto:`、`tel:`、`data:`、`blob:`と外部originの
+HTTP(S) URLはlocal fileの存在検査対象外です。外部URLの到達性、
+PHPやWordPressが動的に出力するSEO、formの実送信、server設定、
+法令・規約への適合性までは検証しません。
+
+`.git`、`.hg`、`.svn`、`node_modules`が公開root内にある場合は公開停止事項
+として報告し、巨大な内部treeは走査しません。symlinkとWindows junctionも
+参照範囲を安全に確定できないため、それぞれ`SYMLINK_UNCHECKED`、
+`JUNCTION_UNCHECKED`として公開停止し、参照先へ再帰しません。
+走査はentry数20,000件、directory深度64、text file単体10 MiB、
+text合計100 MiBを上限とし、超過時は終了code 2で公開rootの絞り込みを
+要求します。
+
+Generatorの`templates`には意図的なダミー情報があり、生成直後の案件にも
+未設定formやSEO情報が残るため、公開前検査に失敗するのが正常です。
+案件固有情報、送信処理、公開URL、assetを完成させてから実行してください。
+
+検査成功は、検査範囲で既知の公開停止事項が見つからなかったことだけを
+示します。「公開内容全体の正しさ」や公開可能性を保証するものではありません。
 
 ### 回帰テスト
 

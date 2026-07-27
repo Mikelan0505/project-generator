@@ -11,7 +11,8 @@
     "lint:html:sample": "npm run generate:sample && html-validate \"outputs/sample/**/*.html\"",
     "lint:html": "npm run lint:html:templates && npm run lint:html:sample",
     "test:python": "python -m unittest discover -s tests -q",
-    "check": "npm run lint:html && npm run test:python"
+    "check": "npm run lint:html && npm run test:python",
+    "check:public": "python tools/public_release_check.py"
   },
   "devDependencies": {
     "html-validate": "10.17.0"

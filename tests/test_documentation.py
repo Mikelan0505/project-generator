@@ -41,6 +41,13 @@ class DocumentationSafetyTests(
                 "discover -s tests -q"
             ),
             "npm run check",
+            "npm run check:public",
+            "--root",
+            "--base-url",
+            "read-only",
+            ".htaccess",
+            "JUNCTION_UNCHECKED",
+            "公開内容全体の正しさ",
             "HTML検証専用の破棄可能な生成物",
             "PROJECT_GENERATOR_PHP",
             "starter-contract.json",

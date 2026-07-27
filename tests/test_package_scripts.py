@@ -71,6 +71,21 @@ class PackageScriptTests(unittest.TestCase):
             self.scripts["check"],
         )
 
+    def test_public_check_is_independent(
+        self,
+    ) -> None:
+        self.assertEqual(
+            (
+                "python "
+                "tools/public_release_check.py"
+            ),
+            self.scripts["check:public"],
+        )
+        self.assertNotIn(
+            "check:public",
+            self.scripts["check"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
